@@ -1,4 +1,4 @@
-﻿import { jsPDF } from "jspdf";
+import { jsPDF } from "jspdf";
 import type { Note } from "../types/note.types";
 
 // ---------------------------------------------------------------------------
@@ -35,121 +35,80 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
   const marginR = pageW - 16;
   const contentW = marginR - marginL;
 
+  // ── Cornell Layout Parameters ───────────────────────────────────────────
+  const mainIdeasW = 50;
+  const gap = 4;
+  const notesW = contentW - mainIdeasW - gap;
+  const summaryH = 45;
+
+  const notesX = marginL + mainIdeasW + gap;
+  const boxTopY = 32;
+  const boxBottomY = pageH - 16 - summaryH - gap;
+  const boxH = boxBottomY - boxTopY;
+
+  const summaryY = boxBottomY + gap;
+  const textLeftX = notesX + 4;
+  const textMaxW = notesW - 8;
+
   // ── We track the Y cursor across pages ──────────────────────────────────
-  let y = 0;
+  let y = boxTopY + 10;
 
   const ensureSpace = (needed: number) => {
-    if (y + needed > pageH - 18) {
+    if (y + needed > boxBottomY - 4) {
       addFooter();
       pdf.addPage();
       drawHeader();
-      y = 42; // below header
+      drawCornellBoxes();
+      y = boxTopY + 10;
     }
+  };
+
+  // ── Cornell Boxes ────────────────────────────────────────────────────────
+  const drawCornellBoxes = () => {
+    pdf.setDrawColor(...ZINC900);
+    pdf.setLineWidth(0.5);
+
+    // Main Ideas box
+    pdf.rect(marginL, boxTopY, mainIdeasW, boxH);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(...ZINC900);
+    pdf.text("Main Ideas", marginL + 3, boxTopY + 6);
+
+    // Notes box
+    pdf.rect(notesX, boxTopY, notesW, boxH);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(...ZINC900);
+    pdf.text("Notes", notesX + 3, boxTopY + 6);
+
+    // Summary box
+    pdf.rect(marginL, summaryY, contentW, summaryH);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(...ZINC900);
+    pdf.text("Summary", marginL + 3, summaryY + 6);
   };
 
   // ── Header ───────────────────────────────────────────────────────────────
   const drawHeader = () => {
-    // Emerald accent bar
-    pdf.setFillColor(...EMERALD);
-    pdf.rect(0, 0, pageW, 1.5, "F");
-
-    // Logo
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.setTextColor(...EMERALD);
-    pdf.text("Qrious", marginL, 12);
+    pdf.setFontSize(22);
+    pdf.setTextColor(...ZINC900);
+    pdf.text("Qrious Notes", pageW / 2, 16, { align: "center" });
 
-    // Subtitle
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(7);
-    pdf.setTextColor(...ZINC400);
-    pdf.text("QUANTUM LEARNING PLATFORM", marginL, 17);
-
-    // Date top-right
-    const dateStr = new Date().toLocaleDateString("en-IN", {
-      day: "2-digit", month: "short", year: "numeric",
-    });
-    pdf.setFontSize(8);
-    pdf.setTextColor(...ZINC600);
-    pdf.text(dateStr, marginR, 12, { align: "right" });
-
-    // Separator line
-    pdf.setDrawColor(...ZINC200);
-    pdf.setLineWidth(0.4);
-    pdf.line(marginL, 21, marginR, 21);
+    pdf.setFontSize(12);
+    const titleText = note.title || "Untitled Note";
+    pdf.text(titleText, pageW / 2, 24, { align: "center", maxWidth: contentW });
   };
 
   // ── Footer ───────────────────────────────────────────────────────────────
   const addFooter = () => {
-    pdf.setDrawColor(...EMERALD);
-    pdf.setLineWidth(0.4);
-    pdf.line(marginL, pageH - 10, marginR, pageH - 10);
-
-    pdf.setFontSize(7.5);
+    pdf.setFontSize(8);
     pdf.setTextColor(...ZINC400);
-    pdf.text("Qrious — Quantum Learning Platform", marginL, pageH - 5);
-
     const page = pdf.getNumberOfPages();
-    pdf.text(`Page ${page}`, marginR, pageH - 5, { align: "right" });
-  };
-
-  // ── Diagonal watermark ────────────────────────────────────────────────────
-  const drawWatermark = () => {
-    pdf.saveGraphicsState();
-    pdf.setGState(pdf.GState({ opacity: 0.04 }));
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(72);
-    pdf.setTextColor(...EMERALD);
-    // Rotate around page center
-    pdf.text("QRIOUS", pageW / 2, pageH / 2, {
-      align: "center",
-      angle: 35,
-    });
-    pdf.restoreGraphicsState();
-  };
-
-  // ── Title block ──────────────────────────────────────────────────────────
-  const drawTitleBlock = () => {
-    y = 27;
-
-    // Note title
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    pdf.setTextColor(...ZINC900);
-    const titleLines = pdf.splitTextToSize(note.title || "Untitled Note", contentW);
-    pdf.text(titleLines, marginL, y);
-    y += titleLines.length * 7 + 2;
-
-    // Tags
-    const tags = Array.isArray(note.tags)
-      ? note.tags
-      : typeof note.tags === "string"
-      ? [note.tags]
-      : [];
-
-    if (tags.length > 0) {
-      let tx = marginL;
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
-      tags.forEach((tag) => {
-        const label = `  ${tag}  `;
-        const w = pdf.getTextWidth(label) + 2;
-        pdf.setFillColor(...GREEN_BG);
-        pdf.setDrawColor(...EMERALD);
-        pdf.setLineWidth(0.3);
-        pdf.roundedRect(tx, y - 3.5, w, 5.5, 1.5, 1.5, "FD");
-        pdf.setTextColor(...EMERALD);
-        pdf.text(label, tx + 1, y + 0.5);
-        tx += w + 3;
-      });
-      y += 9;
-    }
-
-    // Divider under title
-    pdf.setDrawColor(...ZINC200);
-    pdf.setLineWidth(0.3);
-    pdf.line(marginL, y, marginR, y);
-    y += 7;
+    pdf.text(`Page ${page}`, pageW / 2, pageH - 8, { align: "center" });
   };
 
   // ── Markdown block renderer ──────────────────────────────────────────────
@@ -158,7 +117,7 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
       pdf.setFont("helvetica", "italic");
       pdf.setFontSize(10);
       pdf.setTextColor(...ZINC400);
-      pdf.text("(Empty note)", marginL, y);
+      pdf.text("(Empty note)", textLeftX, y);
       y += 8;
       return;
     }
@@ -188,18 +147,18 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
         pdf.setFillColor(249, 250, 251);
         pdf.setDrawColor(...ZINC200);
         pdf.setLineWidth(0.3);
-        pdf.roundedRect(marginL, y - 1, contentW, blockH, 3, 3, "FD");
+        pdf.roundedRect(textLeftX, y - 1, textMaxW, blockH, 3, 3, "FD");
 
         // Lang label
         if (lang) {
           pdf.setFont("courier", "normal");
           pdf.setFontSize(7.5);
           pdf.setTextColor(...EMERALD);
-          pdf.text(lang.toUpperCase(), marginL + 3, y + 4);
+          pdf.text(lang.toUpperCase(), textLeftX + 3, y + 4);
           y += 8;
           // inner separator
           pdf.setDrawColor(...ZINC200);
-          pdf.line(marginL, y, marginL + contentW, y);
+          pdf.line(textLeftX, y, textLeftX + textMaxW, y);
           y += 3;
         } else {
           y += 3;
@@ -209,8 +168,8 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
         pdf.setFontSize(8.5);
         pdf.setTextColor(...EMERALD);
         codeLines.forEach((cl) => {
-          const wrapped = pdf.splitTextToSize(cl || " ", contentW - 6);
-          pdf.text(wrapped, marginL + 3, y);
+          const wrapped = pdf.splitTextToSize(cl || " ", textMaxW - 6);
+          pdf.text(wrapped, textLeftX + 3, y);
           y += wrapped.length * lineH;
         });
 
@@ -222,16 +181,16 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
       if (line.startsWith("- ") || line.startsWith("* ")) {
         while (i < lines.length && (lines[i].startsWith("- ") || lines[i].startsWith("* "))) {
           const text = stripInline(lines[i].slice(2));
-          const wrapped = pdf.splitTextToSize(text, contentW - 8);
+          const wrapped = pdf.splitTextToSize(text, textMaxW - 8);
           ensureSpace(wrapped.length * 5 + 2);
 
           pdf.setFillColor(...EMERALD);
-          pdf.circle(marginL + 2, y - 1.2, 1, "F");
+          pdf.circle(textLeftX + 2, y - 1.2, 1, "F");
 
           pdf.setFont("helvetica", "normal");
           pdf.setFontSize(10);
           pdf.setTextColor(...ZINC900);
-          pdf.text(wrapped, marginL + 6, y);
+          pdf.text(wrapped, textLeftX + 6, y);
           y += wrapped.length * 5 + 1.5;
           i++;
         }
@@ -245,7 +204,7 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(11);
         pdf.setTextColor(...ZINC900);
-        pdf.text(stripInline(line.slice(4)), marginL, y);
+        pdf.text(stripInline(line.slice(4)), textLeftX, y);
         y += 7;
         i++; continue;
       }
@@ -255,10 +214,10 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(13);
         pdf.setTextColor(...ZINC900);
-        pdf.text(stripInline(line.slice(3)), marginL, y);
+        pdf.text(stripInline(line.slice(3)), textLeftX, y);
         y += 2;
         pdf.setDrawColor(...ZINC200);
-        pdf.line(marginL, y + 1, marginR, y + 1);
+        pdf.line(textLeftX, y + 1, textLeftX + textMaxW, y + 1);
         y += 6;
         i++; continue;
       }
@@ -268,7 +227,7 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(15);
         pdf.setTextColor(...ZINC900);
-        pdf.text(stripInline(line.slice(2)), marginL, y);
+        pdf.text(stripInline(line.slice(2)), textLeftX, y);
         y += 8;
         i++; continue;
       }
@@ -278,7 +237,7 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
         ensureSpace(6);
         pdf.setDrawColor(...ZINC200);
         pdf.setLineWidth(0.3);
-        pdf.line(marginL, y, marginR, y);
+        pdf.line(textLeftX, y, textLeftX + textMaxW, y);
         y += 5;
         i++; continue;
       }
@@ -291,22 +250,83 @@ export async function downloadNoteAsPdf(note: Note): Promise<void> {
 
       // ── Paragraph ────────────────────────────────────────────────────────
       const text = stripInline(line);
-      const wrapped = pdf.splitTextToSize(text, contentW);
+      const wrapped = pdf.splitTextToSize(text, textMaxW);
       ensureSpace(wrapped.length * 5.5 + 2);
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
       pdf.setTextColor(...ZINC900);
-      pdf.text(wrapped, marginL, y);
+      pdf.text(wrapped, textLeftX, y);
       y += wrapped.length * 5.5 + 1.5;
       i++;
     }
   };
 
+  // ── Parse Markdown into Cornell Sections ──────────────────────────────────
+  const parseMarkdown = (raw: string) => {
+    const lines = raw.split("\n");
+    const notesLines: string[] = [];
+    const mainIdeasLines: string[] = [];
+    const summaryLines: string[] = [];
+    let currentSection = "notes";
+
+    for (const line of lines) {
+      const headingMatch = line.match(/^#{1,3}\s+(.*)/);
+      if (headingMatch) {
+        const text = headingMatch[1].toLowerCase().trim();
+        if (text === "main idea" || text === "main ideas") {
+          currentSection = "mainIdeas";
+          continue;
+        } else if (text === "summary") {
+          currentSection = "summary";
+          continue;
+        } else {
+          currentSection = "notes";
+        }
+      }
+
+      if (currentSection === "mainIdeas") mainIdeasLines.push(line);
+      else if (currentSection === "summary") summaryLines.push(line);
+      else notesLines.push(line);
+    }
+    return {
+      notes: notesLines.join("\n"),
+      mainIdeas: mainIdeasLines.join("\n"),
+      summary: summaryLines.join("\n"),
+    };
+  };
+
+  const renderSimpleText = (raw: string, startX: number, startY: number, maxW: number) => {
+    let currentY = startY;
+    const lines = raw.split("\n");
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.setTextColor(...ZINC900);
+
+    for (const line of lines) {
+      const text = stripInline(line).replace(/^#{1,6}\s*/, "").replace(/^[-*]\s*/, "");
+      if (!text.trim()) {
+        currentY += 4;
+        continue;
+      }
+      const wrapped = pdf.splitTextToSize(text, maxW);
+      pdf.text(wrapped, startX, currentY);
+      currentY += wrapped.length * 5.5 + 1.5;
+    }
+  };
+
   // ── Assemble the document ────────────────────────────────────────────────
+  const parsed = parseMarkdown(note.content_markdown || "");
   drawHeader();
-  drawWatermark();
-  drawTitleBlock();
-  renderBody(note.content_markdown || "");
+  drawCornellBoxes();
+
+  if (parsed.mainIdeas.trim()) {
+    renderSimpleText(parsed.mainIdeas, marginL + 3, boxTopY + 12, mainIdeasW - 6);
+  }
+  if (parsed.summary.trim()) {
+    renderSimpleText(parsed.summary, marginL + 3, summaryY + 12, contentW - 6);
+  }
+
+  renderBody(parsed.notes);
   addFooter();
 
   // ── Add footer + watermark to every page ──────────────────────────────────
