@@ -32,9 +32,14 @@ export const useAssemblyStepGate = () => {
     return STEPS.indexOf(step) <= currentStepIndex;
   };
 
+  const resetStep = () => {
+    setCurrentStepIndex(0);
+  };
+
   return {
     currentStep,
     advanceStep,
+    resetStep,
     isStepUnlocked,
     progressPercent: (currentStepIndex / (STEPS.length - 1)) * 100
   };

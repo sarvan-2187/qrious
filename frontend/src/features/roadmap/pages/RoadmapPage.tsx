@@ -12,7 +12,11 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+<<<<<<< HEAD
+import { useSearchParams } from 'react-router-dom';
+=======
 import { DomainSelector } from '../components/DomainSelector';
+>>>>>>> 6d1b778929b6eb8df158f11d878ac9eee73d14e0
 
 interface RoadmapUnit {
   id: number;
@@ -234,6 +238,7 @@ const getUnitsForDomain = (domain: string, topics: RoadmapTopic[]): DynamicUnit[
 };
 
 export const RoadmapPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { theme } = useTheme();
   const { currentUser } = useAuth();
@@ -255,6 +260,19 @@ export const RoadmapPage: React.FC = () => {
   });
 
   const topics: RoadmapTopic[] = response?.data || [];
+
+  // Open topic from URL if present
+  useEffect(() => {
+    const topicSlug = searchParams.get('topic');
+    if (topicSlug && topics.length > 0) {
+      const topicToOpen = topics.find(t => t.slug === topicSlug);
+      if (topicToOpen) {
+        setSelectedTopic(topicToOpen);
+        // Clear param so it doesn't re-open when closed
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, topics, setSearchParams]);
 
   const startMutation = useMutation({
     mutationFn: startTopic,
