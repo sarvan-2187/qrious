@@ -171,5 +171,5 @@ The frontend gate library strictly mirrors **Qiskit's standard library** to guar
 | **Parameterized**| RX, RY, RZ, U | `circuit.rx(theta, q)`, `circuit.u(theta, phi, lam, q)` |
 | **Multi-Qubit**  | CX (CNOT), CY, CZ, SWAP, CCX (Toffoli) | `circuit.cx(c, t)`, `circuit.ccx(c1, c2, t)` |
 | **Classical**    | Measure, Reset | `circuit.measure(q, c)`, `circuit.reset(q)` |
-
+ fj
 **Debugging via Stepping**: Because of strict Qiskit compatibility, the Playground supports a **Quantum Debugger**. By injecting snapshot instructions (`circuit.save_statevector()`) at each moment, the backend streams step-by-step state changes, allowing users to "play" the circuit layer by layer.
