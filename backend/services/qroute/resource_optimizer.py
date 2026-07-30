@@ -13,7 +13,7 @@ import qiskit.qasm2
 from qiskit import transpile
 
 from .device_capabilities import (
-    DeviceCapability, calibration_age_days, confidence, device_key,
+    DeviceCapability, calibration_age_days, confidence, device_key, get_capability,
 )
 
 # Fixed so the same circuit always produces the same estimate — a
@@ -172,3 +172,135 @@ def estimate_execution(
         estimated_cost=round(shots * cap["cost_amount"], 4),
         notes=notes,
     )
+
+
+# Fidelity dominates because a low-fidelity result teaches the student nothing;
+# queue matters next (a demo that never returns is worthless); cost last,
+# because most devices in the roster are free.
+DEFAULT_WEIGHTS = {"fidelity": 0.6, "queue": 0.25, "cost": 0.15}
+
+# Queue score halves at this depth: 0 jobs -> 1.0, 40 jobs -> 0.5, 200 -> 0.17.
+_QUEUE_HALF_LIFE_JOBS = 40.0
+# Cost score halves here: free -> 1.0, $1.00 -> 0.5.
+_COST_HALF_LIFE_USD = 1.0
+
+
+@dataclass
+class Recommendation:
+    estimate: ExecutionEstimate
+    score: float
+    rationale: str                 # one-line prose summary
+    factors: list[dict]            # [{"sign": "+"|"-"|"~", "text": str}]
+
+
+def _queue_score(pending: Optional[int]) -> float:
+    if pending is None:
+        return 0.75   # unknown queue: neither rewarded nor heavily punished
+    return _QUEUE_HALF_LIFE_JOBS / (_QUEUE_HALF_LIFE_JOBS + max(0, pending))
+
+
+def _cost_score(amount: float, unit: str) -> float:
+    """ponytail: scores the raw amount regardless of unit. Safe only while at
+    most ONE non-free unit is in play (today: IonQ in USD, everything else
+    free). Add a second paid unit — qBraid credits — and this needs a
+    per-unit normaliser before the comparison means anything."""
+    if unit == "free" or amount <= 0:
+        return 1.0
+    return _COST_HALF_LIFE_USD / (_COST_HALF_LIFE_USD + amount)
+
+
+def _factors(est: ExecutionEstimate) -> list[dict]:
+    """Signed, one-line tradeoffs a student can scan.
+
+    Prose hides the comparison; a +/- list makes "all-to-all connectivity but
+    paid and queued" legible at a glance, which is the whole pedagogical point
+    of the panel."""
+    if not est.fits:
+        return [{"sign": "-", "text": est.notes}]
+
+    out = [{
+        "sign": "~",
+        "text": f"{est.two_qubit_gates} entangling + {est.one_qubit_gates} "
+                f"single-qubit gates, depth {est.transpiled_depth}",
+    }]
+
+    if est.routing_overhead_2q > 0:
+        out.append({"sign": "-", "text": f"{est.routing_overhead_2q} extra gate(s) inserted for routing"})
+    else:
+        out.append({"sign": "+", "text": "no routing gates needed"})
+
+    if est.pending_jobs is not None:
+        sign = "+" if est.pending_jobs <= 10 else "-"
+        out.append({"sign": sign, "text": f"{est.pending_jobs} job(s) queued"})
+
+    if est.estimated_cost <= 0:
+        out.append({"sign": "+", "text": "free to run"})
+    else:
+        amount = (f"${est.estimated_cost:.2f}" if est.cost_unit == "USD"
+                  else f"{est.estimated_cost:g} {est.cost_unit}")
+        out.append({"sign": "-", "text": f"costs {amount}"})
+
+    if est.confidence != "high":
+        out.append({
+            "sign": "-",
+            "text": f"calibration data is {est.calibration_age_days} days old "
+                    f"({est.confidence} confidence)",
+        })
+
+    return out
+
+
+def _rationale(est: ExecutionEstimate) -> str:
+    if not est.fits:
+        return est.notes
+    return (
+        f"Est. fidelity {est.expected_fidelity:.1%} (upper bound) — {est.notes}"
+    )
+
+
+def rank_devices(
+    qasm: str,
+    shots: int,
+    devices: list[dict],
+    weights: Optional[dict] = None,
+) -> tuple[list[Recommendation], list[dict]]:
+    """Scores every device we have cited capability data for, best first.
+
+    Returns (ranked, unrated). `unrated` holds the DeviceInfo dicts we have no
+    calibration data for — surfaced to the user as "no data" rather than
+    scored off invented numbers or silently dropped from the roster."""
+    w = weights or DEFAULT_WEIGHTS
+    total_w = sum(w.values()) or 1.0
+
+    ranked: list[Recommendation] = []
+    unrated: list[dict] = []
+
+    for device in devices:
+        provider = device["provider"]
+        device_id = device["id"]
+        # A live pending_jobs on the DeviceInfo (IBM populates it in Task 1)
+        # overrides the static table's None.
+        cap = get_capability(provider, device_id, live=device)
+        if cap is None:
+            unrated.append(device)
+            continue
+
+        est = estimate_execution(
+            qasm, shots, cap, provider, device_id, device.get("name", device_id)
+        )
+        score = (
+            w.get("fidelity", 0.0) * est.expected_fidelity
+            + w.get("queue", 0.0) * _queue_score(est.pending_jobs)
+            + w.get("cost", 0.0) * _cost_score(est.estimated_cost, est.cost_unit)
+        ) / total_w
+        # A device the circuit doesn't fit on stays in the list (so the student
+        # sees WHY it's unusable) but can never outrank a device that works.
+        if not est.fits:
+            score = -1.0
+        ranked.append(Recommendation(
+            estimate=est, score=round(score, 6),
+            rationale=_rationale(est), factors=_factors(est),
+        ))
+
+    ranked.sort(key=lambda r: r.score, reverse=True)
+    return ranked, unrated

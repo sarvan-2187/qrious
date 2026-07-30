@@ -111,6 +111,94 @@ def test_invalid_qasm_raises_rather_than_scoring_garbage():
     raise AssertionError("invalid QASM must raise, not silently produce an estimate")
 
 
+from services.qroute.resource_optimizer import DEFAULT_WEIGHTS, rank_devices
+
+DEVICES = [
+    {"id": "ionq_simulator", "name": "IonQ Simulator", "provider": "ionq", "is_simulator": True},
+    {"id": "qpu.forte-1", "name": "IonQ Forte 1", "provider": "ionq", "is_simulator": False},
+    {"id": "ibm_torino", "name": "ibm_torino", "provider": "ibm", "is_simulator": False},
+    {"id": "mystery_box", "name": "Mystery Box", "provider": "qbraid", "is_simulator": False},
+]
+
+
+def test_ranking_returns_every_known_device_scored_and_sorted():
+    ranked, unrated = rank_devices(GHZ_QASM, 1024, DEVICES)
+    assert len(ranked) == 3
+    scores = [r.score for r in ranked]
+    assert scores == sorted(scores, reverse=True), "must be sorted best-first"
+
+
+def test_uncatalogued_device_is_reported_unrated_not_scored():
+    ranked, unrated = rank_devices(GHZ_QASM, 1024, DEVICES)
+    assert [d["id"] for d in unrated] == ["mystery_box"]
+    assert all(r.estimate.device_id != "mystery_box" for r in ranked)
+
+
+def test_every_recommendation_explains_itself_with_numbers():
+    ranked, _ = rank_devices(GHZ_QASM, 1024, DEVICES)
+    for rec in ranked:
+        assert rec.rationale, "a recommendation with no explanation is not usable in a teaching tool"
+        assert "fidelity" in rec.rationale.lower()
+
+
+def test_fidelity_is_labelled_as_an_upper_bound_not_a_prediction():
+    ranked, _ = rank_devices(GHZ_QASM, 1024, DEVICES)
+    assert "upper bound" in ranked[0].rationale.lower()
+
+
+def test_factors_are_signed_and_cover_the_real_tradeoffs():
+    ranked, _ = rank_devices(GHZ_QASM, 1024, DEVICES)
+    forte = next(r for r in ranked if r.estimate.device_id == "qpu.forte-1")
+    signs = {f["sign"] for f in forte.factors}
+    texts = " ".join(f["text"] for f in forte.factors).lower()
+    assert signs <= {"+", "-", "~"}
+    assert "+" in signs and "-" in signs, "a paid all-to-all device has both pros and cons"
+    assert "routing" in texts
+    assert "costs" in texts, "the only paid device must show its cost as a minus"
+
+
+def test_paid_device_cost_factor_names_its_unit():
+    ranked, _ = rank_devices(GHZ_QASM, 1024, DEVICES)
+    forte = next(r for r in ranked if r.estimate.device_id == "qpu.forte-1")
+    cost_factor = next(f for f in forte.factors if "costs" in f["text"])
+    assert "$" in cost_factor["text"]
+
+
+def test_weighting_cost_heavily_demotes_the_paid_device():
+    fidelity_first, _ = rank_devices(GHZ_QASM, 1024, DEVICES, {"fidelity": 1.0, "queue": 0.0, "cost": 0.0})
+    cost_first, _ = rank_devices(GHZ_QASM, 1024, DEVICES, {"fidelity": 0.0, "queue": 0.0, "cost": 1.0})
+    paid = "qpu.forte-1"
+    rank_by_fidelity = [r.estimate.device_id for r in fidelity_first].index(paid)
+    rank_by_cost = [r.estimate.device_id for r in cost_first].index(paid)
+    assert rank_by_cost > rank_by_fidelity, "the only paid device must fall when cost dominates"
+
+
+def test_queue_depth_penalises_a_busy_device():
+    quiet = [{"id": "ibm_torino", "name": "t", "provider": "ibm", "is_simulator": False,
+              "pending_jobs": 0}]
+    busy = [{"id": "ibm_torino", "name": "t", "provider": "ibm", "is_simulator": False,
+             "pending_jobs": 500}]
+    q, _ = rank_devices(GHZ_QASM, 1024, quiet)
+    b, _ = rank_devices(GHZ_QASM, 1024, busy)
+    assert q[0].score > b[0].score
+
+
+def test_device_too_small_is_ranked_last_not_dropped():
+    wide = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[30];
+creg c[30];
+h q[0];
+"""
+    ranked, _ = rank_devices(wide, 100, DEVICES)
+    assert ranked[-1].estimate.fits is False
+    assert ranked[0].estimate.fits is True
+
+
+def test_default_weights_sum_to_one():
+    assert abs(sum(DEFAULT_WEIGHTS.values()) - 1.0) < 1e-9
+
+
 if __name__ == "__main__":
     test_ideal_simulator_has_perfect_fidelity_and_zero_cost()
     test_estimate_carries_calibration_provenance()
@@ -122,4 +210,14 @@ if __name__ == "__main__":
     test_cost_scales_with_shots()
     test_circuit_too_wide_for_device_is_marked_unfit()
     test_invalid_qasm_raises_rather_than_scoring_garbage()
+    test_ranking_returns_every_known_device_scored_and_sorted()
+    test_uncatalogued_device_is_reported_unrated_not_scored()
+    test_every_recommendation_explains_itself_with_numbers()
+    test_fidelity_is_labelled_as_an_upper_bound_not_a_prediction()
+    test_factors_are_signed_and_cover_the_real_tradeoffs()
+    test_paid_device_cost_factor_names_its_unit()
+    test_weighting_cost_heavily_demotes_the_paid_device()
+    test_queue_depth_penalises_a_busy_device()
+    test_device_too_small_is_ranked_last_not_dropped()
+    test_default_weights_sum_to_one()
     print("ok")
