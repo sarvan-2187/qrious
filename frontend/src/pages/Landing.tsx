@@ -1,37 +1,39 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { FaRocket, FaCode, FaAtom, FaGithub } from 'react-icons/fa';
+import Navbar from '@/components/landing/Navbar';
+import HeroSection from '@/components/landing/HeroSection';
+import WalkthroughSection from '@/components/landing/WalkthroughSection';
+import FeatureGrid from '@/components/landing/FeatureGrid';
+import WorkflowBlock from '@/components/landing/WorkflowBlock';
+import AudienceBento from '@/components/landing/AudienceBento';
+import FooterCTA from '@/components/landing/FooterCTA';
+import SmoothScroll from '@/components/SmoothScroll';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function Landing() {
+  const { theme } = useTheme();
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background text-foreground transition-colors duration-300">
-      <div className="max-w-3xl text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <SmoothScroll>
+      <main className={`min-h-screen pb-4 px-4 sm:px-6 md:px-8 pt-4 transition-colors duration-300 flex flex-col items-center ${
+        theme === 'dark' 
+          ? 'bg-zinc-950 text-white selection:bg-emerald-500 selection:text-zinc-900' 
+          : 'bg-zinc-100 text-zinc-900 selection:bg-emerald-400 selection:text-zinc-900'
+      }`}>
+        <Navbar />
         
-        <div className="flex justify-center gap-4 mb-6 text-primary">
-          <FaAtom className="w-12 h-12 animate-pulse" />
-          <FaRocket className="w-12 h-12" />
-          <FaCode className="w-12 h-12" />
+        <div className="w-full max-w-[1600px] flex flex-col gap-4">
+          <HeroSection />
+          <WalkthroughSection />
+          <FeatureGrid />
+          <WorkflowBlock />
+          <AudienceBento />
+          <FooterCTA />
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-          Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Qrious</span>
-        </h1>
-        
-        <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
-          Embark on a journey through the quantum realm. Connect, learn, and build the future with a community of curious minds.
-        </p>
-
-        <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
-          <Button asChild size="lg" className="text-lg px-8 py-6 rounded-full">
-            <Link to="/login">Get Started</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 rounded-full">
-            <a href="https://github.com" target="_blank" rel="noreferrer">
-              <FaGithub className="mr-2" /> View Source
-            </a>
-          </Button>
-        </div>
-      </div>
-    </div>
+        <footer className="w-full text-center py-8 mt-4 flex flex-col gap-2 items-center text-sm font-medium opacity-60">
+          <p>&copy; {new Date().getFullYear()} Qrious. All rights reserved.</p>
+          <p>Built by team schrodinger squad</p>
+        </footer>
+      </main>
+    </SmoothScroll>
   );
 }

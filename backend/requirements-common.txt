@@ -1,0 +1,17 @@
+# Local-dev/documentation reference for requirements-api.txt (below), which
+# `-r`-includes this file. The actual deploy target, backend/requirements.txt,
+# has these inlined directly — see its own comment for why.
+#
+# NOTE: this is NOT shared with the video service anymore. video_service/ (a
+# top-level sibling of backend/ and frontend/, run locally via Docker for this
+# MVP — see ../DEPLOYMENT.md) is a fully independent codebase with its own flat
+# requirements.txt and its own trimmed copies of database.py/storage_service.py/
+# groq_service.py — no `-r` reaches outside its own folder. This file only
+# documents the API's own base packages now.
+motor            # async MongoDB client (database.py)
+python-dotenv    # loads backend/.env (database.py, storage_service.py, ai/config.py)
+certifi          # TLS CA bundle for the MongoDB Atlas connection (database.py)
+boto3            # B2/S3 client (storage_service.py)
+openai           # ai/providers/openai_compatible.py — one SDK for every AI Gateway
+                 # provider adapter (Groq/Gemini/Mistral/NVIDIA/Kimi/Z.AI all expose an
+                 # OpenAI-compatible surface). See docs/AI_GATEWAY.md.

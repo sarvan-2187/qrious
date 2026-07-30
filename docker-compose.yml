@@ -1,0 +1,60 @@
+# Unified build+run for the three Dockerized microservices that support the
+# API (backend/) and frontend/ — qstudio_service, notebook_service, and
+# iqm_service. backend/ and frontend/ are NOT included here; they run
+# directly via uvicorn/npm (see README.md's Local Setup), not Docker.
+#
+# Each service also still has its own docker-compose.yml (unchanged, still
+# valid) for running just that one service — this file duplicates their
+# build/port/env_file/logging config rather than replacing them, so both
+# workflows keep working:
+#   cd qstudio_service && docker compose up --build -d      # one service
+#   docker compose up --build -d                            # all three, from repo root
+#
+# Prerequisite: each service's own .env must already exist (copy from that
+# service's .env.example) — this file's env_file paths just point at them.
+
+services:
+  qstudio-service:
+    build: ./qstudio_service
+    image: qrious-qstudio-service
+    container_name: qrious-qstudio-service
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./qstudio_service/.env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  notebook-service:
+    build: ./notebook_service
+    image: qbook-notebook-service
+    container_name: qbook-notebook-service
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./notebook_service/.env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  iqm-service:
+    build: ./iqm_service
+    image: qrious-iqm-service
+    container_name: qrious-iqm-service
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./iqm_service/.env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,37 @@
+# Fully self-contained, flat, unpinned — same convention video_service/requirements.txt
+# uses. This service never touches MongoDB, B2, or Firebase (see notebook_service/main.py's
+# module docstring and PLANS/qbook.md §1) — it only spawns and talks to local ipykernel
+# processes, so there's no motor/certifi/boto3/firebase-admin here.
+fastapi
+uvicorn[standard]
+
+# Kernel management — spawns and talks to real Jupyter (ipykernel) processes.
+ipykernel
+jupyter_client
+pyzmq
+
+# Verifies the short-lived session token backend/routers/qbook_router.py mints.
+pyjwt
+
+# Installed into the kernel's own environment (this is the interpreter ipykernel
+# launches for every session), not just the FastAPI process — see Dockerfile.
+qiskit
+qiskit-aer
+matplotlib
+numpy
+pylatexenc  # qiskit's QuantumCircuit.draw('mpl') requires this at runtime for MatplotlibDrawer
+
+# QML support (PLANS/qbook-qml.md) — qiskit-machine-learning builds directly on the
+# qiskit/qiskit-aer stack above; pennylane-qiskit lets pennylane circuits execute on
+# that same Aer backend instead of pulling in a separate simulator. Unpinned like
+# everything else here — if qiskit-machine-learning/pennylane-qiskit turn out to need
+# a narrower qiskit range than latest, pin qiskit/qiskit-aer above to whatever range
+# satisfies both (see PLANS/qbook-qml.md §6.3 for the fallback if they can't agree).
+pandas
+scikit-learn
+scipy
+seaborn
+qiskit-machine-learning
+pennylane
+pennylane-qiskit
+

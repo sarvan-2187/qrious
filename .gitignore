@@ -10,7 +10,6 @@ Thumbs.db
 *.sw?
 .env
 
-
 # Python (Backend)
 __pycache__/
 *.py[cod]
@@ -69,6 +68,5 @@ pnpm-debug.log*
 .env.*
 !.env.example
 backend/chroma_db/
-
-# Firebase service account key
+# Firebase service-account keys — never commit
 backend/qrious-cats-firebase-adminsdk-fbsvc-c3a8ae0683.json

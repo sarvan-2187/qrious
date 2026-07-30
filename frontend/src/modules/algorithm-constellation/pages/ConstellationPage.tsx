@@ -1,0 +1,390 @@
+import React, { useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, SlidersHorizontal, Network, ChevronDown, RotateCw, ZoomIn, Circle, Zap } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
+import { cn } from '@/lib/utils';
+import { useAlgorithmApi } from '../../algorithm-explorer/hooks/useAlgorithmApi';
+import type { AlgorithmSummary } from '../../algorithm-explorer/hooks/useAlgorithmApi';
+import { AlgorithmSidePanel } from '../components/AlgorithmSidePanel';
+import { QuantumFluencyRadar } from '../components/QuantumFluencyRadar';
+import { useConstellationState } from '../hooks/useConstellationState';
+import { ALL_DOMAINS, getAlgorithmDomain } from '../utils/domainMapper';
+import type { Domain } from '../utils/domainMapper';
+
+// Lazy-load the heavy 3D canvas to keep initial page load snappy
+const ConstellationScene = lazy(() =>
+  import('../components/ConstellationScene').then(m => ({ default: m.ConstellationScene }))
+);
+
+// ─── Overlay cursor hint shown during entry animation ─────────────────────────
+function EntryHint({ isInteractive }: { isInteractive: boolean }) {
+  return (
+    <AnimatePresence>
+      {!isInteractive && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6 }}
+          className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+        >
+          <div className="flex flex-col items-center gap-3">
+            <motion.div
+              className="w-16 h-16 rounded-full border-2 border-emerald-400/40 flex items-center justify-center"
+              animate={{ scale: [1, 1.15, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <div className="w-3 h-3 rounded-full bg-emerald-400" />
+            </motion.div>
+            <p className="text-xs text-zinc-500 font-sans tracking-widest uppercase">
+              Assembling constellation…
+            </p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+const ConstellationPage: React.FC = () => {
+  const { theme } = useTheme();
+  const navigate = useNavigate();
+  const { listAlgorithms, loading } = useAlgorithmApi();
+  const [algorithms, setAlgorithms] = useState<AlgorithmSummary[]>([]);
+  const [isInteractive, setIsInteractive] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const {
+    search,
+    filterDomain,
+    filterDifficulty,
+    selectedSlug,
+    camera,
+    setSearch,
+    setFilterDomain,
+    setFilterDifficulty,
+    setSelectedSlug,
+    setCamera,
+  } = useConstellationState();
+
+  // selectedDomain tracks the 3D domain the camera is focused on
+  const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+
+  // Fetch algorithms once
+  useEffect(() => {
+    let cancelled = false;
+    listAlgorithms()
+      .then(data => { if (!cancelled) setAlgorithms(data); })
+      .catch(console.error);
+    return () => { cancelled = true; };
+  }, [listAlgorithms]);
+
+  // Selected algorithm object
+  const selectedAlgorithm = useMemo(
+    () => algorithms.find(a => a.slug === selectedSlug) ?? null,
+    [algorithms, selectedSlug]
+  );
+
+  // Domain handlers
+  const handleSelectDomain = useCallback((domain: Domain | null) => {
+    setSelectedDomain(domain);
+    if (!domain) setSelectedSlug(null);
+  }, [setSelectedSlug]);
+
+  // Algorithm handlers
+  const handleSelectAlgorithm = useCallback((slug: string | null) => {
+    setSelectedSlug(slug);
+  }, [setSelectedSlug]);
+
+  // Navigate to algorithm detail
+  const handleStartLearning = useCallback((slug: string) => {
+    navigate(`/algorithms/${slug}`);
+  }, [navigate]);
+
+  // Navigate to algorithm in graph (jump camera focus via domain selection)
+  const handleNavigateToRelated = useCallback((slug: string) => {
+    const alg = algorithms.find(a => a.slug === slug);
+    if (!alg) return;
+    setSelectedSlug(slug);
+  }, [algorithms, setSelectedSlug]);
+
+  // Radar domain hover → no-op in 3D scene (handled at graph level in future)
+  const handleDomainHover = useCallback((_: string | null) => {}, []);
+
+  // Radar domain click → select domain in 3D
+  const handleRadarDomainClick = useCallback((domain: string) => {
+    const typed = domain as Domain;
+    setSelectedDomain(prev => prev === typed ? null : typed);
+  }, []);
+
+  const isDark = theme === 'dark';
+
+  return (
+    <div
+      className={cn(
+        'relative w-full h-full overflow-hidden transition-colors duration-300 flex',
+        isDark ? 'bg-zinc-950' : 'bg-zinc-50'
+      )}
+    >
+      {/* ─── Main Content Area (shrinks when sidebar is open) ─── */}
+      <div className={cn(
+        'relative h-full transition-all duration-300 shrink-0',
+        selectedSlug ? 'w-[calc(100%-20rem)]' : 'w-full'
+      )}>
+        {/* ─── 3D Canvas ───
+          Starts below the toolbar rather than at inset-0: the toolbar is an
+          overlay, so a full-bleed canvas centred the globe on the container and
+          pushed it visually low, behind the toolbar. */}
+      <div className="absolute inset-x-0 bottom-0 top-26">
+        <Suspense fallback={null}>
+          {!loading && algorithms.length > 0 && (
+            <ConstellationScene
+              algorithms={algorithms}
+              selectedDomain={selectedDomain}
+              selectedSlug={selectedSlug}
+              isDark={isDark}
+              onSelectDomain={handleSelectDomain}
+              onSelectAlgorithm={handleSelectAlgorithm}
+              onInteractive={() => setIsInteractive(true)}
+            />
+          )}
+        </Suspense>
+      </div>
+
+      {/* ─── Entry animation hint ─── */}
+      <EntryHint isInteractive={isInteractive || loading} />
+
+      {/* ─── Top toolbar (glass overlay) ─── */}
+      <div className={cn(
+        'absolute top-0 left-0 right-0 z-20 px-5 py-3 flex flex-col gap-2',
+        'border-b transition-colors',
+        isDark
+          ? 'bg-zinc-950/70 border-white/6 backdrop-blur-xl'
+          : 'bg-white/80 border-zinc-200/80 backdrop-blur-xl'
+      )}>
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-lg border',
+                isDark ? 'bg-white text-zinc-900 border-zinc-200' : 'bg-zinc-900 text-white border-zinc-800'
+              )}
+            >
+              <Network size={16} />
+            </div>
+            <div>
+              <h1 className={cn('text-lg font-sans leading-none tracking-tight', isDark ? 'text-white' : 'text-zinc-900')}>
+                Algorithm Constellation
+              </h1>
+              <p className={cn('text-xs mt-0.5', isDark ? 'text-zinc-500' : 'text-zinc-600')}>
+                {selectedDomain
+                  ? `${selectedDomain} — ${algorithms.filter(a => getAlgorithmDomain(a.category ?? '', a.name) === selectedDomain).length} algorithms`
+                  : 'Click a domain node to explore'}
+              </p>
+            </div>
+          </div>
+
+          {/* Breadcrumb when domain selected */}
+          <AnimatePresence mode="wait">
+            {selectedDomain && (
+              <motion.button
+                key={selectedDomain}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 12 }}
+                onClick={() => handleSelectDomain(null)}
+                className={cn(
+                  'text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-full border font-sans transition-colors',
+                  isDark
+                    ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                    : 'border-emerald-500/40 text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                )}
+              >
+                ← All domains
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Search + filter row */}
+        <div className="flex gap-2 items-center">
+          <div className="relative flex-1 max-w-xs">
+            <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5', isDark ? 'text-zinc-500' : 'text-zinc-600')} />
+            <input
+              type="text"
+              placeholder="Search algorithms…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              disabled={!isInteractive}
+              className={cn(
+                'w-full pl-8 pr-3 py-2 rounded-xl border text-xs focus:outline-none',
+                'focus:ring-2 focus:ring-emerald-500/30 transition-all font-sans',
+                isDark
+                  ? 'bg-zinc-900/60 border-zinc-800 text-white placeholder-zinc-600 disabled:opacity-40'
+                  : 'bg-white border-zinc-200 text-zinc-900 placeholder-zinc-400 disabled:opacity-40'
+              )}
+            />
+          </div>
+
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            disabled={!isInteractive}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-sans transition-all',
+              showFilters
+                ? isDark
+                  ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10'
+                  : 'border-emerald-600/40 text-emerald-700 bg-emerald-50'
+                : isDark
+                  ? 'border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40'
+                  : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 disabled:opacity-40'
+            )}
+          >
+            <SlidersHorizontal size={13} />
+            Filters
+            <ChevronDown size={11} className={cn('transition-transform', showFilters && 'rotate-180')} />
+          </button>
+
+          {/* Domain quick filters (compact) */}
+          <div className="hidden md:flex gap-1.5 flex-wrap">
+            {ALL_DOMAINS.slice(0, 6).map(d => (
+              <button
+                key={d}
+                disabled={!isInteractive}
+                onClick={() => handleSelectDomain(selectedDomain === d ? null : d as Domain)}
+                className={cn(
+                  'px-2.5 py-1 rounded-full border text-[11px] font-sans transition-all',
+                  selectedDomain === d
+                    ? isDark
+                      ? 'border-emerald-500/60 text-emerald-400 bg-emerald-500/15'
+                      : 'border-emerald-600/50 text-emerald-700 bg-emerald-50'
+                    : isDark
+                      ? 'border-zinc-800 text-zinc-600 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30'
+                      : 'border-zinc-300 text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 disabled:opacity-30'
+                )}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Expanded difficulty filter */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="flex gap-2 items-center pt-1 flex-wrap overflow-hidden"
+            >
+              <span className={cn('text-[11px] uppercase tracking-wider', isDark ? 'text-zinc-600' : 'text-zinc-600')}>
+                Difficulty:
+              </span>
+              {['All', 'Beginner', 'Intermediate', 'Advanced'].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setFilterDifficulty(filterDifficulty === d ? 'All' : d)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg border text-[11px] font-sans transition-all',
+                    filterDifficulty === d
+                      ? isDark
+                        ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/12'
+                        : 'border-emerald-600/40 text-emerald-700 bg-emerald-50'
+                      : isDark ? 'border-zinc-800 text-zinc-500' : 'border-zinc-300 text-zinc-600'
+                  )}
+                >
+                  {d}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ─── Left sidebar — Quantum Fluency Radar ─── */}
+      <AnimatePresence>
+        {isInteractive && (
+          <motion.div
+            initial={{ x: -300, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -300, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.3 }}
+            className={cn(
+              'absolute bottom-6 left-5 z-20 w-64',
+              'hidden xl:block'
+            )}
+          >
+            <QuantumFluencyRadar
+              algorithms={algorithms}
+              onDomainHover={handleDomainHover}
+              onDomainClick={handleRadarDomainClick}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Legend (bottom right) ─── */}
+      <AnimatePresence>
+        {isInteractive && !selectedSlug && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ delay: 0.5 }}
+            className={cn(
+              'absolute bottom-6 right-6 z-20 hidden lg:flex flex-col gap-1.5 text-[11px] font-sans',
+              'px-3 py-2.5 rounded-xl border',
+              isDark ? 'border-white/6 bg-zinc-950/60 backdrop-blur-lg text-zinc-500' : 'border-zinc-300 bg-white/90 backdrop-blur-lg text-zinc-600'
+            )}
+          >
+            <p className={cn('uppercase tracking-widest text-[10px] mb-0.5', isDark ? 'text-zinc-600' : 'text-zinc-500')}>Controls</p>
+            {[
+              { Icon: RotateCw, action: 'Drag', rest: 'to rotate' },
+              { Icon: ZoomIn, action: 'Scroll', rest: 'to zoom' },
+              { Icon: Circle, action: 'Click domain', rest: 'to expand' },
+              { Icon: Zap, action: 'Click algorithm', rest: 'for details' },
+            ].map(({ Icon, action, rest }) => (
+              <p key={action} className="flex items-center gap-1.5">
+                <Icon size={11} className="shrink-0 opacity-70" />
+                <span className={isDark ? 'text-zinc-400' : 'text-zinc-900'}>{action}</span>
+                {rest}
+              </p>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      </div>
+
+      {/* ─── Algorithm side panel ─── */}
+      <div className="absolute inset-y-0 right-0 z-30 pointer-events-none">
+        <div className="pointer-events-auto h-full">
+          <AlgorithmSidePanel
+            algorithm={selectedAlgorithm}
+            allAlgorithms={algorithms}
+            onClose={() => setSelectedSlug(null)}
+            onNavigateToAlgorithm={handleNavigateToRelated}
+          />
+        </div>
+      </div>
+
+      {/* ─── Loading state ─── */}
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center z-30">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <span className={cn('text-sm font-sans', isDark ? 'text-zinc-500' : 'text-zinc-600')}>
+              Loading constellation…
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ConstellationPage;

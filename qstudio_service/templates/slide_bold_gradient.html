@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: "Geist Sans";
+    src: url("{{ font_base }}/geist-sans-latin-400-normal.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "Geist Sans";
+    src: url("{{ font_base }}/geist-sans-latin-600-normal.woff2") format("woff2");
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    background: #0a0014;
+    color: #ffffff;
+    font-family: "Geist Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 96px 120px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background:
+      linear-gradient(135deg, #ff2fb8 0%, #ff6a3d 32%, #ffb800 52%, #00d4ff 78%, #7c3aed 100%);
+    overflow: hidden;
+  }
+
+  .slide::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(10, 0, 20, 0.15) 0%, rgba(10, 0, 20, 0.55) 100%);
+  }
+
+  .brand, .title, .card, .footer { position: relative; z-index: 1; }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 56px;
+  }
+
+  .brand-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 0 28px 6px rgba(255, 255, 255, 0.75);
+  }
+
+  .brand-text {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: uppercase;
+  }
+
+  .title {
+    font-size: 72px;
+    font-weight: 600;
+    line-height: 1.1;
+    max-width: 1600px;
+    margin-bottom: 64px;
+    text-shadow: 0 4px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .card {
+    flex: 1;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 32px;
+    background: rgba(10, 0, 20, 0.42);
+    backdrop-filter: blur(2px);
+    padding: 64px 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 42px;
+  }
+
+  .bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    font-size: 40px;
+    line-height: 1.4;
+    font-weight: 400;
+    color: #ffffff;
+  }
+
+  .bullet-marker {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 14px;
+    border-radius: 999px;
+    background: #ffb800;
+    box-shadow: 0 0 20px 3px rgba(255, 184, 0, 0.75);
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 56px;
+    left: 120px;
+    right: 120px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 22px;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+  <div class="slide">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div class="brand-text">Qrious &middot; AI Video Overview</div>
+    </div>
+
+    <div class="title">{{ title }}</div>
+
+    <div class="card">
+      {% for bullet in bullets %}
+      <div class="bullet">
+        <div class="bullet-marker"></div>
+        <div>{{ bullet }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="footer">
+      <span>Generated overview</span>
+      <span>{{ slide_number }} / {{ total_slides }}</span>
+    </div>
+  </div>
+</body>
+</html>

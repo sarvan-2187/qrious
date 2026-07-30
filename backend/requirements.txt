@@ -1,3 +1,84 @@
-fastapi[standard]
+# CPU-only PyTorch build. sentence-transformers (below, for the RAG embedding
+# model) pulls in `torch` transitively, and PyPI's default linux `torch` wheel
+# bundles the full NVIDIA CUDA runtime as separate `nvidia-*` deps (cuBLAS,
+# cuDNN, cuSPARSE, cuSOLVER, NCCL, Triton, etc.) — ~2.5GB of downloads that do
+# nothing on FastAPI Cloud's GPU-less host. This is what was OOM-killing the
+# build. --extra-index-url points uv/pip at PyTorch's dedicated CPU-only wheel
+# index so it resolves a ~150-200MB torch build with zero CUDA dependencies
+# instead. Keep this as the first line — some resolvers only honor
+# --extra-index-url discovered before the packages that need it.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# FastAPI Cloud reads ONLY this file, in isolation, during an early dependency-
+# resolution stage that runs before the rest of the repo is copied in — a
+# `-r requirements-api.txt` indirection here fails there with "No such file or
+# directory" even though the sibling file exists in the repo, because it isn't
+# staged yet at that point. (Confirmed via a real failed FastAPI Cloud build:
+# "Error parsing included file in `requirements.txt`... failed to read from
+# file `requirements-api.txt`".) So this file must stay fully self-contained —
+# do not replace the list below with `-r requirements-api.txt` again.
+#
+# This is intentionally identical to requirements-common.txt + requirements-api.txt
+# combined (see those files' comments for why each package is API-only vs shared
+# with the render service). Keep both in sync if you add/remove a dependency here.
 motor
+pymongo
 python-dotenv
+certifi
+boto3
+
+# ai/ — Multi-AI Gateway (docs/AI_GATEWAY.md). Groq, Gemini, Mistral, NVIDIA
+# NIM, Kimi, and Z.AI all expose an OpenAI-compatible chat/completions
+# surface, so this one SDK covers every provider adapter in ai/providers/ —
+# replaces the old direct langchain-groq dependency (removed; nothing in
+# backend/ calls Groq directly anymore, see ai/providers/groq.py).
+openai
+
+fastapi[standard]
+firebase-admin
+livekit-api
+
+qiskit
+qiskit-aer
+qbraid       # services/qbraid_service.py — submits circuits to real quantum
+             # hardware/simulators. Base package ONLY — do not add any
+             # qbraid[...] extra (cirq/braket/etc pull in the same class of
+             # heavy deps that caused the earlier torch/CUDA build OOM).
+
+# services/quantum_providers/ — QRoute multi-provider adapters (PLANS/qroute.md).
+# Each verified individually with real credentials before adding here — see
+# the plan's §3.3 note on why that matters on this specific host.
+qiskit-ionq         # ionq_adapter.py — lean, only pulls qiskit>=2.0 as a real dep
+qiskit-ibm-runtime   # ibm_adapter.py — same qiskit 2.x line, no extra heavy deps
+# qiskit-iqm / iqm-client[qiskit] deliberately NOT added — both pin/require a
+# DIFFERENT qiskit major line than the two packages above (qiskit-iqm needs
+# qiskit<1.3; iqm-client[qiskit] needs ~2.1.2 vs qiskit-ibm-runtime's >=2.3.0)
+# and iqm-client[qiskit] separately drags in pandas/xarray/scipy-stubs/
+# opentelemetry/iqm-pulse — an internal instrument-control SDK's dependency
+# footprint, not a lightweight cloud-job client. Confirmed by trying it: it
+# silently downgraded qiskit and broke qiskit-ionq/qiskit-ibm-runtime in this
+# same venv. IQM support is deferred — see PLANS/qroute.md §6.
+
+pyjwt        # routers/qbook_router.py — signs the short-lived qBook session token
+nbformat     # routers/qbook_router.py — writes the .ipynb export
+markdown     # services/qbook_pdf.py — renders markdown cells for the PDF export
+Pygments     # services/qbook_pdf.py — syntax-highlights code cells for the PDF export
+xhtml2pdf    # services/qbook_pdf.py — pure-Python HTML->PDF renderer for the PDF export
+pypdf        # routers/qstudio_router.py — extracts text from uploaded qStudio source
+             # PDFs. Pure-Python/MIT; already a video_service (now qstudio_service)-only
+             # dependency, added here too per PLANS/qstudio.md §2/§8 so mindmap/
+             # flashcards/briefing generation can read PDF sources without a round-trip
+             # call into qstudio_service.
+
+langchain
+langchain-core
+langchain-chroma
+langchain-huggingface
+langchain-community
+chromadb
+sentence-transformers
+rank-bm25   # rag/lexical.py — pure-Python BM25 for qStudio's hybrid source-grounded
+            # Q&A retrieval (PLANS/qstudio-rag.md). No native deps.
+
+apscheduler
+feedparser

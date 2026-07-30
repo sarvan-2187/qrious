@@ -1,0 +1,19 @@
+services:
+  qstudio-service:
+    build: .
+    image: qrious-qstudio-service
+    container_name: qrious-qstudio-service
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Bounded log retention: application code logs every pipeline step (main.py,
+    # pipeline.py) with print(..., flush=True) — without this, `docker logs` keeps
+    # every line forever and can grow unbounded over a long local dev session.
+    # Rotates at 10MB per file, keeps the last 3 files (~30MB max).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

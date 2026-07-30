@@ -1,0 +1,18 @@
+services:
+  notebook-service:
+    build: .
+    image: qbook-notebook-service
+    container_name: qbook-notebook-service
+    # 8081 on both sides — the container itself defaults to 8081 (see Dockerfile /
+    # .env's PORT), not the more obvious 8080, so this stays out of video_service's
+    # way (which claims 8080) whether or not you're going through compose at all.
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
