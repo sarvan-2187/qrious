@@ -3,13 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { useEffect, useState } from 'react';
-import { FaBookOpen, FaCog, FaSignOutAlt, FaUpload, FaHome, FaFolderOpen, FaFlask, FaProjectDiagram, FaStickyNote, FaGlobe, FaBolt, FaFire, FaBook, FaChartLine, FaPuzzlePiece, FaUser, FaSatelliteDish, FaLightbulb, FaShareAlt } from 'react-icons/fa';
+import { FaBookOpen, FaCog, FaSignOutAlt, FaUpload, FaHome, FaFolderOpen, FaFlask, FaProjectDiagram, FaStickyNote, FaGlobe, FaBolt, FaFire, FaBook, FaChartLine, FaPuzzlePiece, FaUser, FaSatelliteDish, FaLightbulb, FaShareAlt, FaStopwatch } from 'react-icons/fa';
 import { Separator } from '@/components/ui/separator';
 import { fetchXpSummary, fetchStreakStatus } from '@/features/gamification/api';
 import type { XpSummary, StreakStatus } from '@/features/gamification/types/gamification.types';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { DailyXpModal } from '@/features/gamification/components/DailyXpModal';
+import { PomodoroFAB } from '@/features/focus/components/PomodoroFAB';
+import { usePomodoro } from '@/features/focus/hooks/usePomodoro';
 
 export default function AppLayout() {
 
@@ -21,6 +23,13 @@ export default function AppLayout() {
   const [xpSummary, setXpSummary] = useState<XpSummary | null>(null);
   const [streakStatus, setStreakStatus] = useState<StreakStatus | null>(null);
   const [isXpModalOpen, setIsXpModalOpen] = useState(false);
+  const { state: pomodoroState } = usePomodoro();
+  
+  const focusMins = String(Math.floor(pomodoroState.secondsLeft / 60)).padStart(2, '0');
+  const focusSecs = String(pomodoroState.secondsLeft % 60).padStart(2, '0');
+  const focusText = pomodoroState.isRunning 
+    ? `${focusMins}m ${focusSecs}s` 
+    : 'Focus Mode';
 
   useEffect(() => {
     async function fetchUserData() {
@@ -135,6 +144,7 @@ export default function AppLayout() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.pathname.startsWith('/playground')} tooltip="Quantum Playground">
                   <Link to="/playground">
@@ -200,6 +210,14 @@ export default function AppLayout() {
                   <Link to="/qroute">
                     <FaSatelliteDish />
                     <span>QRoute</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/focus'} tooltip={focusText}>
+                  <Link to="/focus">
+                    <FaStopwatch />
+                    <span>{focusText}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -277,7 +295,7 @@ export default function AppLayout() {
 
           {/* Gamification Status Badges (Learners Only) */}
           {!isEducator && (
-            <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono transition-opacity duration-500">
               {xpSummary && (
                 <div
                   onClick={() => setIsXpModalOpen(true)}
@@ -331,11 +349,14 @@ export default function AppLayout() {
         </main>
 
         {!isEducator && (
-          <DailyXpModal
-            isOpen={isXpModalOpen}
-            onClose={() => setIsXpModalOpen(false)}
-            xpSummary={xpSummary}
-          />
+          <>
+            <DailyXpModal
+              isOpen={isXpModalOpen}
+              onClose={() => setIsXpModalOpen(false)}
+              xpSummary={xpSummary}
+            />
+            <PomodoroFAB />
+          </>
         )}
       </SidebarInset>
     </SidebarProvider>
