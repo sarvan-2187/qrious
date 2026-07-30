@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { useEffect, useState } from 'react';
-import { FaBookOpen, FaCog, FaSignOutAlt, FaUpload, FaHome, FaFolderOpen, FaFlask, FaProjectDiagram, FaStickyNote, FaGlobe, FaBolt, FaFire, FaBook, FaChartLine, FaPuzzlePiece, FaUser, FaSatelliteDish, FaLightbulb, FaShareAlt, FaStopwatch } from 'react-icons/fa';
+import { FaBookOpen, FaCog, FaSignOutAlt, FaUpload, FaHome, FaFolderOpen, FaFlask, FaProjectDiagram, FaStickyNote, FaGlobe, FaBolt, FaFire, FaBook, FaChartLine, FaPuzzlePiece, FaUser, FaSatelliteDish, FaLightbulb, FaShareAlt, FaStopwatch, FaBrain } from 'react-icons/fa';
 import { Separator } from '@/components/ui/separator';
 import { fetchXpSummary, fetchStreakStatus } from '@/features/gamification/api';
 import type { XpSummary, StreakStatus } from '@/features/gamification/types/gamification.types';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { DailyXpModal } from '@/features/gamification/components/DailyXpModal';
 import { PomodoroFAB } from '@/features/focus/components/PomodoroFAB';
 import { usePomodoro } from '@/features/focus/hooks/usePomodoro';
+import { NotificationBell } from '@/components/NotificationBell';
 
 export default function AppLayout() {
 
@@ -61,7 +62,7 @@ export default function AppLayout() {
       }
     }
     fetchUserData();
-
+    
     const handleXpUpdate = () => {
       if (userData?.role !== 'educator') {
         fetchGamificationHeader();
@@ -144,6 +145,7 @@ export default function AppLayout() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
 
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.pathname.startsWith('/playground')} tooltip="Quantum Playground">
@@ -293,7 +295,7 @@ export default function AppLayout() {
             )}>Qrious Quantum Platform</span>
           </div>
 
-          {/* Gamification Status Badges (Learners Only) */}
+          {/* Gamification Status Badges & Notification Bell (Learners Only) */}
           {!isEducator && (
             <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono transition-opacity duration-500">
               {xpSummary && (
@@ -339,6 +341,8 @@ export default function AppLayout() {
                   <span className="font-medium">{streakStatus.current_streak}d Streak</span>
                 </div>
               )}
+              
+              <NotificationBell />
             </div>
           )}
         </header>

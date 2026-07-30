@@ -42,6 +42,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RoadmapPage } from './features/roadmap/pages/RoadmapPage';
 import { QuizPage } from './features/quiz/pages/QuizPage';
 import { QuizReviewPage } from './features/quiz/pages/QuizReviewPage';
+import { SpacedRepetitionPage } from './features/spaced-repetition/pages/SpacedRepetitionPage';
 import { NotesPage } from './features/notes/pages/NotesPage';
 import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
 import { AssessmentPage } from './features/analytics/pages/AssessmentPage';
@@ -198,6 +199,11 @@ function App() {
                 <Route path="/notes" element={
                   <ProtectedRoute>
                     <NotesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/reviews" element={
+                  <ProtectedRoute>
+                    <SpacedRepetitionPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/flashcards" element={

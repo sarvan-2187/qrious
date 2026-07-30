@@ -4,10 +4,13 @@ import { useAlgorithmApi } from '../hooks/useAlgorithmApi';
 import type { AlgorithmBase, QuickInfo, AlgorithmSummary } from '../hooks/useAlgorithmApi';
 import { markAlgorithmExplored } from '../../algorithm-constellation/hooks/useConstellationState';
 import { TheoryPanel } from '../components/TheoryPanel';
-import { FaArrowLeft, FaChevronDown, FaChevronUp, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaExternalLinkAlt, FaInfoCircle, FaChevronDown, FaChevronUp, FaBookOpen, FaBrain } from 'react-icons/fa';
+import { apiClient as api } from '@/lib/apiClient';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmbeddedPlayground } from '../components/EmbeddedPlayground';
 import { CircuitCanvas } from '../../gates-playground/components/CircuitCanvas';
+import { ScheduleReviewModal } from '@/components/ScheduleReviewModal';
 
 const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
   <h2 className="text-2xl font-bold mt-12 mb-6 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -109,6 +112,8 @@ const AlgorithmDetailPage: React.FC = () => {
   const [algorithm, setAlgorithm] = useState<AlgorithmBase | null>(null);
   const [allAlgorithms, setAllAlgorithms] = useState<AlgorithmSummary[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isMarkingReview, setIsMarkingReview] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const isConstellation = location.pathname.startsWith('/constellation');
   const backLink = isConstellation ? '/constellation' : '/algorithms';
@@ -140,6 +145,33 @@ const AlgorithmDetailPage: React.FC = () => {
     fetchAll();
   }, [listAlgorithms]);
 
+  const handleOpenScheduleModal = () => {
+    setShowScheduleModal(true);
+  };
+
+  const handleMarkForReview = async (date: string) => {
+    if (!algorithm || !slug) return;
+    try {
+      setIsMarkingReview(true);
+      await api.post('/api/v1/reviews/mark', {
+        target_id: slug,
+        target_type: 'algorithm',
+        title: algorithm.name,
+        scheduled_date: date
+      });
+      toast.success('Marked for review', { duration: 1000 });
+      window.dispatchEvent(new Event('review_marked'));
+    } catch (err: any) {
+      if (err.response?.data?.message === "Already marked for review") {
+        toast.info(`"${algorithm.name}" is already scheduled.`);
+      } else {
+        toast.error('Failed to schedule review');
+      }
+    } finally {
+      setIsMarkingReview(false);
+    }
+  };
+
   if (loading || (!algorithm && !error)) {
     return (
       <div className="container mx-auto p-8 flex justify-center items-center h-64">
@@ -165,16 +197,28 @@ const AlgorithmDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-[1600px] mx-auto px-6 md:px-12 py-12 flex flex-col gap-12">
-      <div>
-        <Link to={backLink} className="inline-flex items-center text-emerald-500 hover:text-emerald-400 mb-6 font-medium transition-colors">
-          <FaArrowLeft className="mr-2" /> {backText}
-        </Link>
-        <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">{algorithm.name}</h1>
-        {algorithm.shortDescription && (
-          <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
-            {algorithm.shortDescription}
-          </p>
-        )}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div>
+          <Link to={backLink} className="inline-flex items-center text-emerald-500 hover:text-emerald-400 mb-6 font-medium transition-colors">
+            <FaArrowLeft className="mr-2" /> {backText}
+          </Link>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">{algorithm.name}</h1>
+          {algorithm.shortDescription && (
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+              {algorithm.shortDescription}
+            </p>
+          )}
+        </div>
+        
+        <button
+          onClick={handleOpenScheduleModal}
+          disabled={isMarkingReview}
+          className="px-4 py-2.5 rounded-xl border flex items-center justify-center transition-colors cursor-pointer text-sm font-mono font-medium gap-2 shadow-sm shrink-0 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
+          title="Add to Spaced Repetition Daily Reviews"
+        >
+          <FaBrain />
+          <span>Mark for Review</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 items-start">
@@ -382,6 +426,13 @@ const AlgorithmDetailPage: React.FC = () => {
           <QuickInfoSidebar info={quickInfo} allAlgorithms={allAlgorithms} />
         </div>
       </div>
+
+      <ScheduleReviewModal 
+        isOpen={showScheduleModal} 
+        onClose={() => setShowScheduleModal(false)}
+        onConfirm={handleMarkForReview}
+        itemName={algorithm?.name || 'Algorithm'}
+      />
     </div>
   );
 };

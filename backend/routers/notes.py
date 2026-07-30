@@ -192,6 +192,21 @@ async def create_note(
     topic_slug = payload.get("topic_slug")
     tags = payload.get("tags", [])
     
+    # Auto-assign or create "Roadmap Notes" folder if note originates from a roadmap topic
+    if topic_slug and not folder_id:
+        roadmap_folder = await db.note_folders.find_one({"firebase_uid": firebase_uid, "name": "Roadmap Notes"})
+        if roadmap_folder:
+            folder_id = str(roadmap_folder["_id"])
+        else:
+            new_folder_doc = {
+                "firebase_uid": firebase_uid,
+                "name": "Roadmap Notes",
+                "color": "#10b981", # Emerald color to match roadmap
+                "created_at": datetime.utcnow()
+            }
+            res = await db.note_folders.insert_one(new_folder_doc)
+            folder_id = str(res.inserted_id)
+    
     now = datetime.utcnow()
     note_doc = {
         "firebase_uid": firebase_uid,

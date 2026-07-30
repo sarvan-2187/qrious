@@ -218,6 +218,7 @@ from routers.ai_gateway_router import router as ai_gateway_router
 from routers.bloch_router import router as bloch_router
 from routers.quantum_execution_router import router as quantum_execution_router
 from routers.qforge_router import router as qforge_router
+from routers.reviews import router as reviews_router
 
 app.include_router(accounts_router)
 app.include_router(educator_router)
@@ -234,6 +235,7 @@ app.include_router(quiz_router)
 app.include_router(roadmap_router)
 app.include_router(flashcards_router)
 app.include_router(notes_router)
+app.include_router(reviews_router)
 app.include_router(xp_router)
 app.include_router(badges_router)
 app.include_router(streak_router)
