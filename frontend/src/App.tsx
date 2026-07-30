@@ -7,8 +7,14 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyEmail from './pages/VerifyEmail';
+
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
+import CourseCatalog from './pages/CourseCatalog';
+import CourseDetail from './pages/CourseDetail';
+import CourseViewer from './pages/CourseViewer';
+import EducatorDashboard from './pages/EducatorDashboard';
+import CourseEditor from './pages/CourseEditor';
 import NotFound from './pages/NotFound';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -49,14 +55,14 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
+            {/* Public */}
             <Route path="/" element={<Landing />} />
-
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
 
-            {/* Aliases preserve the copied Login/Signup redirect paths. */}
+            {/* Initial user setup */}
             <Route
               path="/onboarding"
               element={
@@ -82,11 +88,88 @@ function App() {
               }
             />
 
+            {/* LMS */}
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses"
+              element={
+                <ProtectedRoute>
+                  <CourseCatalog />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses/:id"
+              element={
+                <ProtectedRoute>
+                  <CourseDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses/:id/view"
+              element={
+                <ProtectedRoute>
+                  <CourseViewer />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Educator LMS */}
+            <Route
+              path="/educator/courses"
+              element={
+                <ProtectedRoute>
+                  <EducatorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/educator/courses/:id"
+              element={
+                <ProtectedRoute>
+                  <CourseEditor />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses/:id/preview"
+              element={
+                <ProtectedRoute>
+                  <CourseViewer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/educator/courses"
+              element={
+                <ProtectedRoute>
+                  <EducatorDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/courses/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <CourseEditor />
                 </ProtectedRoute>
               }
             />

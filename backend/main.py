@@ -1,76 +1,68 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import os
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pymongo.errors import PyMongoError
+
 from database import connect_to_mongo, close_mongo_connection
+from routers.accounts import router as accounts_router
+from routers.default import router as learner_router
+from routers.educator import router as educator_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     await connect_to_mongo()
     yield
-    # Shutdown
     await close_mongo_connection()
+
 
 app = FastAPI(
     title="Qrious API",
-    description="Backend API built with FastAPI",
+    description="Qrious API is Running",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
+
+frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[frontend_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+@app.exception_handler(PyMongoError)
+async def mongo_error_handler(request: Request, exc: PyMongoError):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Database service is temporarily unavailable."},
+    )
+
+
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to Qrious API!",
-        "status": "running"
+        "message": "Qrious LMS API is running",
+        "status": "running",
     }
 
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy"
-    }
+    return {"status": "healthy"}
 
 
-from models.user import UserOnboarding
-from database import get_db
+# Authentication and onboarding
+app.include_router(accounts_router)
 
-@app.post("/api/onboarding")
-async def save_onboarding(user_data: UserOnboarding):
-    db = get_db()
-    if db is None:
-        return {"error": "Database not connected"}
-    
-    user_dict = user_data.model_dump()
-    
-    existing_user = await db.users.find_one({"firebase_uid": user_data.firebase_uid})
-    if existing_user:
-        await db.users.update_one({"firebase_uid": user_data.firebase_uid}, {"$set": user_dict})
-        return {"message": "User updated successfully"}
-    
-    await db.users.insert_one(user_dict)
-    return {"message": "User saved successfully"}
+# Learner LMS: catalog, enrollments, lessons, progress, resources
+app.include_router(learner_router)
 
-@app.get("/api/user/{firebase_uid}")
-async def get_user(firebase_uid: str):
-    from fastapi import HTTPException
-    db = get_db()
-    if db is None:
-        raise HTTPException(status_code=500, detail="Database not connected")
-    
-    user = await db.users.find_one({"firebase_uid": firebase_uid})
-    if user:
-        user['_id'] = str(user['_id'])
-        return user
-    
-    raise HTTPException(status_code=404, detail="User not found")
+# Educator LMS: create, edit, publish courses/modules/lessons
+app.include_router(educator_router)

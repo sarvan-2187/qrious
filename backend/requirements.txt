@@ -1,3 +1,6 @@
 fastapi[standard]
 motor
 python-dotenv
+firebase-admin
+certifi
+boto3
