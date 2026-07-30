@@ -11,7 +11,8 @@ interface ScheduleReviewModalProps {
 }
 
 export const ScheduleReviewModal: React.FC<ScheduleReviewModalProps> = ({ isOpen, onClose, onConfirm, itemName }) => {
-  const { isDark } = useTheme();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   
   // Default to today
   const today = new Date();
