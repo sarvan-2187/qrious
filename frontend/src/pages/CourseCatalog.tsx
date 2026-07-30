@@ -78,7 +78,7 @@ export default function CourseCatalog() {
         setLoading(false);
       }
     };
-    if (currentUser) fetchCourses();
+    fetchCourses();
   }, [currentUser]);
 
   const filteredPublishedCourses = useMemo(() => {
@@ -175,41 +175,6 @@ export default function CourseCatalog() {
                       <Link to={`/courses/${c.id}`} className="font-semibold text-purple-400 group-hover:translate-x-1 transition-transform inline-flex items-center">
                         Explore Course <span className="ml-1">→</span>
                       </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {/* Render Domain Demo Courses (Fallback if not yet seeded in backend) */}
-              {filteredDemoCourses.map(c => (
-                <Card key={c.id} className="hover:shadow-lg transition-all border-purple-500/20 bg-card/70 backdrop-blur hover:border-purple-500/50 group">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary" className="text-xs bg-purple-500/10 text-purple-300 border-purple-500/30">
-                        {c.category} Engineering
-                      </Badge>
-                      <Badge variant="outline" className="text-xs text-muted-foreground">
-                        {c.level}
-                      </Badge>
-                    </div>
-                    <CardTitle className="text-lg group-hover:text-purple-300 transition-colors">
-                      {c.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">{c.description}</p>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {c.tags.map((tag) => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded bg-muted/60 text-muted-foreground">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/40">
-                      <span>⏱️ {c.duration}</span>
-                      <span className="font-semibold text-purple-400 group-hover:translate-x-1 transition-transform inline-flex items-center">
-                        Explore Demo <span className="ml-1">→</span>
-                      </span>
                     </div>
                   </CardContent>
                 </Card>

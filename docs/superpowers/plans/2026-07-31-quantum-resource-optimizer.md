@@ -378,7 +378,7 @@ def confidence(cap: DeviceCapability, today: Optional[date] = None) -> str:
 - [ ] **Step 5: Run test to verify it passes**
 
 Run: `cd backend && pytest tests/test_device_capabilities.py -v`
-Expected: PASS, 9 passed
+Expected: PASS, 10 passed
 
 - [ ] **Step 6: Add the two live fields to DeviceInfo**
 

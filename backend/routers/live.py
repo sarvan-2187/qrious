@@ -51,11 +51,25 @@ async def start_session(session_id: str, user=Depends(get_current_user)):
         raise HTTPException(403, "Only the course owner can start this session")
 
     recording_key = f"live-recordings/{session['course_id']}/{session_id}.mp4"
-    egress_id = await start_recording(session["room_name"], recording_key)
+    
+    # Try to start recording — gracefully skip if Egress is not configured on this LiveKit deployment.
+    egress_id = None
+    try:
+        egress_id = await start_recording(session["room_name"], recording_key)
+    except Exception as e:
+        print(f"[WARNING] Could not start recording egress (session will still go live): {e}")
+
+    update_fields: dict = {
+        "status": "live",
+        "started_at": datetime.now(timezone.utc),
+    }
+    if egress_id:
+        update_fields["egress_id"] = egress_id
+        update_fields["recording_b2_key"] = recording_key
 
     await db.live_sessions.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"status": "live", "started_at": datetime.now(timezone.utc), "egress_id": egress_id, "recording_b2_key": recording_key}}
+        {"$set": update_fields}
     )
     token = generate_room_token(session["room_name"], user["firebase_uid"], user.get("full_name", "Educator"), is_educator=True)
     return {"livekit_url": os.getenv("LIVEKIT_URL"), "token": token, "is_educator": True}
@@ -85,13 +99,21 @@ async def end_session(session_id: str, user=Depends(get_current_user)):
         raise HTTPException(403, "Only the course owner can end this session")
 
     if "egress_id" in session:
-        await stop_recording(session["egress_id"])
-        
-    await delete_livekit_room(session["room_name"])
-        
+        try:
+            await stop_recording(session["egress_id"])
+        except Exception as e:
+            print(f"[WARNING] Could not stop recording egress: {e}")
+
+    try:
+        await delete_livekit_room(session["room_name"])
+    except Exception as e:
+        print(f"[WARNING] Could not delete LiveKit room: {e}")
+
+    # If a recording was started, mark as processing; otherwise mark as simply ended.
+    end_status = "recording_processing" if "egress_id" in session else "ended"
     await db.live_sessions.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"status": "recording_processing", "ended_at": datetime.now(timezone.utc)}}
+        {"$set": {"status": end_status, "ended_at": datetime.now(timezone.utc)}}
     )
     return {"status": "ended"}
 

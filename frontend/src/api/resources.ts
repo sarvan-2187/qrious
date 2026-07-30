@@ -1,6 +1,6 @@
 import { auth } from '../firebase';
 
-export type ResourceType = "video" | "ppt" | "notes" | "cheatsheet";
+export type ResourceType = "video" | "ppt" | "notes" | "cheatsheet" | "interactive_lab";
 
 export interface Resource {
   resource_id: string;

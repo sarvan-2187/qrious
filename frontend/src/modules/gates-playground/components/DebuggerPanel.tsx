@@ -11,9 +11,10 @@ interface DebuggerPanelProps {
   qubits: number;
   cbits: number;
   gates: GateInstance[];
+  onExitDebug?: () => void;
 }
 
-export const DebuggerPanel: React.FC<DebuggerPanelProps> = ({ qubits, cbits, gates }) => {
+export const DebuggerPanel: React.FC<DebuggerPanelProps> = ({ qubits, cbits, gates, onExitDebug }) => {
   const { fetchDebugSteps, loading, error } = useDebugStepApi();
   const [steps, setSteps] = useState<DebugStep[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -72,8 +73,16 @@ export const DebuggerPanel: React.FC<DebuggerPanelProps> = ({ qubits, cbits, gat
     <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold flex items-center gap-3">
-          <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-md text-[11px] uppercase tracking-widest font-mono border border-emerald-500/20">Debug Mode</span>
+          <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-md text-[11px] uppercase tracking-widest font-mono border border-purple-500/20">Debug Mode</span>
         </h2>
+        {onExitDebug && (
+          <button
+            onClick={onExitDebug}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-qp-card hover:bg-qp-hover text-qp-text border border-qp-border shadow-sm transition-all active:scale-95 cursor-pointer"
+          >
+            ✕ Exit Debug Mode
+          </button>
+        )}
       </div>
       
       <TimelineScrubber 
