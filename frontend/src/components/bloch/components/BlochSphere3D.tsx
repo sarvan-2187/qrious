@@ -1,5 +1,5 @@
-import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { BlochVector, TrajectoryPoint } from '../types/quantum';
@@ -14,6 +14,9 @@ interface BlochSphere3DProps {
   bottomStateText?: string;
   historyLength?: number;
   className?: string;
+  isRecordingGif?: boolean;
+  onGifFrame?: (canvas: HTMLCanvasElement) => void;
+  onGifComplete?: () => void;
 }
 
 // ─── Smooth arrow: cylinder shaft + cone tip, rendered from origin → tip ─────
@@ -102,7 +105,10 @@ function SphereScene({
   traceColor = '#1d4ed8',
   topStateText = '|0⟩',
   bottomStateText = '|1⟩',
-  historyLength = 10
+  historyLength = 10,
+  isRecordingGif,
+  onGifFrame,
+  onGifComplete
 }: {
   blochVec: BlochVector;
   targetBlochVec?: BlochVector;
@@ -112,8 +118,26 @@ function SphereScene({
   topStateText?: string;
   bottomStateText?: string;
   historyLength?: number;
+  isRecordingGif?: boolean;
+  onGifFrame?: (canvas: HTMLCanvasElement) => void;
+  onGifComplete?: () => void;
 }) {
+  const { gl, scene, camera } = useThree();
   const N = 96;
+
+  const lastFrameTime = useRef(0);
+
+  useFrame((state) => {
+    if (isRecordingGif && onGifFrame) {
+      const now = state.clock.elapsedTime;
+      // Capture at ~20 FPS (every 0.05 seconds) to prevent massive memory usage
+      if (now - lastFrameTime.current >= 0.05) {
+        gl.render(scene, camera);
+        onGifFrame(gl.domElement);
+        lastFrameTime.current = now;
+      }
+    }
+  });
 
   const gridLines = useMemo(() => {
     const lines: { pts: [number, number, number][]; key: string; isEquator: boolean }[] = [];
@@ -242,6 +266,9 @@ export const BlochSphere3D: React.FC<BlochSphere3DProps> = ({
   topStateText = '|0⟩',
   bottomStateText = '|1⟩',
   historyLength = 10,
+  isRecordingGif,
+  onGifFrame,
+  onGifComplete,
   className = ''
 }) => {
   return (
@@ -260,6 +287,9 @@ export const BlochSphere3D: React.FC<BlochSphere3DProps> = ({
           topStateText={topStateText}
           bottomStateText={bottomStateText}
           historyLength={historyLength}
+          isRecordingGif={isRecordingGif}
+          onGifFrame={onGifFrame}
+          onGifComplete={onGifComplete}
         />
       </Canvas>
     </div>

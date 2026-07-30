@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import GIF from 'gif.js';
 import type { QubitState, TrajectoryPoint, PulseParams } from './types/quantum';
 import { CircuitCopilotSidebar } from '@/modules/gates-playground/components/CircuitCopilotSidebar';
 import { SchrodingerLauncher } from '@/modules/gates-playground/components/SchrodingerLauncher';
@@ -57,8 +58,29 @@ function ActionBtn({
 
 export const BlochSphereVisualizer: React.FC = () => {
   const { theme } = useTheme();
+
+  // Suppress harmless third-party library warnings that clutter the console
+  useEffect(() => {
+    const originalWarn = console.warn;
+    console.warn = (...args) => {
+      if (typeof args[0] === 'string') {
+        if (args[0].includes('THREE.Clock: This module has been deprecated')) return;
+        if (args[0].includes('Multiple readback operations using getImageData')) return;
+      }
+      originalWarn(...args);
+    };
+    return () => {
+      console.warn = originalWarn;
+    };
+  }, []);
+
   const [history, setHistory] = useState<QubitState[]>([getInitialState()]);
   const [trajectories, setTrajectories] = useState<TrajectoryPoint[]>([]);
+
+  // GIF Export State
+  const [isRecordingGif, setIsRecordingGif] = useState(false);
+  const [isProcessingGif, setIsProcessingGif] = useState(false);
+  const gifRef = useRef<GIF | null>(null);
 
   const [aiTutorOpen, setAiTutorOpen] = useState(false);
   const [isCatInCopilot, setIsCatInCopilot] = useState(false);
@@ -173,6 +195,8 @@ export const BlochSphereVisualizer: React.FC = () => {
     toast.info('Reset to |0⟩');
   };
 
+
+
   const handleDownload = () => {
     const canvas = document.querySelector('canvas');
     if (canvas) {
@@ -180,10 +204,80 @@ export const BlochSphereVisualizer: React.FC = () => {
       const link = document.createElement('a');
       link.href = image;
       link.download = `bloch-sphere-${Date.now()}.png`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       toast.success('PNG downloaded');
     } else {
       toast.error('Canvas not found');
+    }
+  };
+
+  const startGifRecording = () => {
+    if (isRecordingGif) {
+      if (gifRef.current && !isProcessingGif) {
+        setIsProcessingGif(true);
+        try {
+          gifRef.current.render();
+          toast.info('Processing GIF... this may take a moment.');
+        } catch (e) {
+          toast.error('Failed to process GIF.');
+          setIsRecordingGif(false);
+          setIsProcessingGif(false);
+        }
+      }
+      return;
+    }
+    
+    gifRef.current = new GIF({
+      workers: 2,
+      quality: 10,
+      workerScript: '/gif.worker.js',
+      background: theme === 'dark' ? '#09090b' : '#ffffff',
+      transparent: null
+    });
+
+    gifRef.current.on('finished', (blob: Blob) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `bloch-sphere-animation-${Date.now()}.gif`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('GIF downloaded successfully!');
+      setIsRecordingGif(false);
+      setIsProcessingGif(false);
+    });
+
+    // Handle any potential errors to prevent UI lockup
+    gifRef.current.on('abort', () => {
+      toast.error('GIF generation aborted.');
+      setIsRecordingGif(false);
+      setIsProcessingGif(false);
+    });
+
+    setIsRecordingGif(true);
+    toast.info('Recording started! Apply gates now. Click "Stop Recording" when done.', { duration: 5000 });
+  };
+
+  const handleGifFrame = (canvas: HTMLCanvasElement) => {
+    if (gifRef.current && isRecordingGif) {
+      gifRef.current.addFrame(canvas, { delay: 50, copy: true });
+      
+      // Safety limit: if someone records too long, auto-stop to prevent memory crash
+      if (gifRef.current.frames.length >= 200) {
+        startGifRecording(); // Auto-stop recording
+        toast.info('Maximum GIF length reached. Stopping recording...');
+      }
+    }
+  };
+
+  const handleGifComplete = () => {
+    if (gifRef.current) {
+      gifRef.current.render();
+      toast.info('Processing GIF... this may take a moment.');
     }
   };
 
@@ -228,11 +322,21 @@ export const BlochSphereVisualizer: React.FC = () => {
 
               {/* Top control bar */}
               <div className={cn(
-                "flex items-center gap-2 px-4 py-3 border-b shrink-0",
+                "flex items-center justify-between gap-2 px-4 py-3 border-b shrink-0",
                 theme === 'dark' ? "border-white/10" : "border-zinc-200"
               )}>
-                <ActionBtn id="bloch-init-btn" onClick={handleReset}>INIT</ActionBtn>
-                <ActionBtn id="bloch-undo-btn" onClick={handleUndo} disabled={history.length <= 1}>Undo</ActionBtn>
+                <div className="flex items-center gap-2">
+                  <ActionBtn id="bloch-init-btn" onClick={handleReset}>INIT</ActionBtn>
+                  <ActionBtn id="bloch-undo-btn" onClick={handleUndo} disabled={history.length <= 1}>Undo</ActionBtn>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ActionBtn id="bloch-img-export" onClick={handleDownload} disabled={isRecordingGif || isProcessingGif}>
+                    IMG Export
+                  </ActionBtn>
+                  <ActionBtn id="bloch-gif-export" onClick={startGifRecording} disabled={isProcessingGif}>
+                    {isProcessingGif ? 'Processing...' : isRecordingGif ? 'Stop Recording' : 'Record GIF'}
+                  </ActionBtn>
+                </div>
               </div>
 
               {/* 3D Canvas — transparent bg so theme shows through */}
@@ -245,17 +349,18 @@ export const BlochSphereVisualizer: React.FC = () => {
                   topStateText={settings.topStateText}
                   bottomStateText={settings.bottomStateText}
                   historyLength={settings.historyLength}
+                  isRecordingGif={isRecordingGif}
+                  onGifFrame={handleGifFrame}
+                  onGifComplete={handleGifComplete}
                   className="absolute inset-0"
                 />
               </div>
 
               {/* Bottom bar */}
               <div className={cn(
-                "flex items-center justify-between px-4 py-3 border-t shrink-0",
+                "flex items-center justify-end px-4 py-3 border-t shrink-0",
                 theme === 'dark' ? "border-white/10" : "border-zinc-200"
               )}>
-                <ActionBtn id="bloch-download-btn" onClick={handleDownload}>Download</ActionBtn>
-
                 <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground">
                   <span>x: <strong className="text-foreground tabular-nums">{blochVec.u.toFixed(3)}</strong></span>
                   <span>y: <strong className="text-foreground tabular-nums">{blochVec.v.toFixed(3)}</strong></span>
