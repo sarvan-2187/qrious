@@ -11,6 +11,7 @@ from ai.providers.groq import GroqProvider
 from ai.providers.kimi import KimiProvider
 from ai.providers.mistral import MistralProvider
 from ai.providers.nvidia import NvidiaProvider
+from ai.providers.qrious_code import QriousCodeProvider
 from ai.providers.vllm import VLLMProvider
 from ai.providers.zai import ZaiProvider
 
@@ -22,6 +23,9 @@ PROVIDER_CLASSES: dict[str, type] = {
     "kimi": KimiProvider,
     "zai": ZaiProvider,
     "vllm": VLLMProvider,
+    # Last on purpose: Qrious's own fine-tuned model, wired but not in the
+    # routing chain (see ai/config.py's DEFAULT_PROVIDER_PRIORITY).
+    "qrious_code": QriousCodeProvider,
 }
 
 

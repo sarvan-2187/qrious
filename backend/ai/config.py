@@ -117,8 +117,26 @@ def load_provider_configs() -> dict[str, ProviderConfig]:
                 base_url=vllm_base_url,
                 default_model=os.getenv("VLLM_MODEL", ""),
             )
+    # Qrious's own fine-tuned quantum-code model (llm_service/qrious-code-1.0).
+    # Same shape as vLLM above and for the same reason: it is served as a remote
+    # OpenAI-compatible endpoint, so this application needs no GPU and no model
+    # runtime. Absent these two env vars the provider is listed at startup as
+    # disabled — see ai/providers/qrious_code.py for why it is also kept out of
+    # DEFAULT_PROVIDER_PRIORITY.
+    if _env_bool("QRIOUS_CODE_ENABLED", False):
+        qrious_code_base_url = os.getenv("QRIOUS_CODE_BASE_URL")
+        if qrious_code_base_url:
+            configs["qrious_code"] = ProviderConfig(
+                name="qrious_code",
+                # Self-hosted, same as vLLM — a bearer token is usually
+                # unchecked, so it is present-but-optional rather than a hard
+                # requirement for `enabled`.
+                api_key=os.getenv("QRIOUS_CODE_API_KEY") or "not-required",
+                base_url=qrious_code_base_url,
+                default_model=os.getenv("QRIOUS_CODE_MODEL", "qrious-code-1.0"),
+            )
     return configs
-
+ 
 
 # --------------------------------------------------------------------------
 # Routing policy
