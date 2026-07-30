@@ -1,7 +1,7 @@
 # CPU-only PyTorch build — see requirements.txt's own comment for why (torch
 # comes in transitively via sentence-transformers, below). Mirrored here for
 # documentation only; requirements.txt is the file that actually ships.
---extra-index-url https://download.pytorch.org/whl/cpu
+--find-links https://download.pytorch.org/whl/cpu/torch/
 
 # Local-dev/documentation reference only — backend/requirements.txt (what FastAPI
 # Cloud and local `pip install -r requirements.txt` actually use) has this same

@@ -3,11 +3,26 @@
 # bundles the full NVIDIA CUDA runtime as separate `nvidia-*` deps (cuBLAS,
 # cuDNN, cuSPARSE, cuSOLVER, NCCL, Triton, etc.) — ~2.5GB of downloads that do
 # nothing on FastAPI Cloud's GPU-less host. This is what was OOM-killing the
-# build. --extra-index-url points uv/pip at PyTorch's dedicated CPU-only wheel
-# index so it resolves a ~150-200MB torch build with zero CUDA dependencies
-# instead. Keep this as the first line — some resolvers only honor
-# --extra-index-url discovered before the packages that need it.
---extra-index-url https://download.pytorch.org/whl/cpu
+# build. Pointing at PyTorch's own CPU wheels resolves a ~150-200MB torch with
+# zero CUDA dependencies instead.
+#
+# --find-links, NOT --extra-index-url. As an extra INDEX, uv gives that host
+# priority over PyPI and, under its default "first-index" strategy, stops at
+# the first index listing a package at all — and PyTorch's index mirrors stale
+# copies of unrelated packages. It served urllib3 1.26.13 (qbraid needs 2.x, so
+# every QRoute request 500'd in production with "cannot import name
+# 'BaseHTTPResponse'") and requests 2.28.1 (which langchain-community rejects,
+# failing the build outright once urllib3 was pinned). --find-links is a flat
+# page of files rather than an index, so it's merged with PyPI and the best
+# version wins per package: torch resolves to 2.13.0+cpu (a local version
+# segment sorts above plain 2.13.0, so the CPU build is still preferred) while
+# urllib3/requests come from PyPI. Verified with `uv pip compile` on both 3.11
+# and 3.14: urllib3 2.7.0, torch 2.13.0+cpu, zero nvidia-* packages.
+#
+# The equivalent `--index-strategy unsafe-best-match` is NOT usable here: uv
+# only accepts it as a CLI flag or in uv.toml, and neither reaches this build
+# (see the note below on what's staged during resolution).
+--find-links https://download.pytorch.org/whl/cpu/torch/
 
 # FastAPI Cloud reads ONLY this file, in isolation, during an early dependency-
 # resolution stage that runs before the rest of the repo is copied in — a
@@ -17,6 +32,12 @@
 # "Error parsing included file in `requirements.txt`... failed to read from
 # file `requirements-api.txt`".) So this file must stay fully self-contained —
 # do not replace the list below with `-r requirements-api.txt` again.
+#
+# Same reason a repo-root uv.toml / .python-version doesn't work: neither is
+# staged when the venv is created and dependencies resolve, so uv never sees
+# them (a build with both in place still logged "Using CPython 3.14.6" and the
+# unchanged index error). Anything the build must honor belongs in THIS file;
+# the interpreter version has to come from FastAPI Cloud's own project settings.
 #
 # This is intentionally identical to requirements-common.txt + requirements-api.txt
 # combined (see those files' comments for why each package is API-only vs shared
@@ -49,10 +70,10 @@ qbraid       # services/qbraid_service.py — submits circuits to real quantum
 # (urllib3.response.BaseHTTPResponse, added in 2.0), so a 1.x resolution makes
 # every QRoute request die with "ImportError: cannot import name
 # 'BaseHTTPResponse'" — which is what happened in production while local
-# (urllib3 2.7) worked fine. The 1.x came from the --extra-index-url above
-# shadowing PyPI; ../uv.toml's index-strategy is what actually fixes that, and
-# this floor makes the requirement explicit. 2.4 is what qiskit-ibm-runtime and
-# ibm-cloud-sdk-core already require anyway.
+# (urllib3 2.7) worked fine. The --find-links change above is what stops the
+# stale 1.26.13 from winning; this floor states the requirement outright so a
+# regression fails the build instead of shipping a broken qBraid. 2.4 is what
+# qiskit-ibm-runtime and ibm-cloud-sdk-core already require anyway.
 urllib3>=2.4
 
 # services/quantum_providers/ — QRoute multi-provider adapters (PLANS/qroute.md).
