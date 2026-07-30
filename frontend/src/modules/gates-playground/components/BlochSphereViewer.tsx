@@ -18,7 +18,7 @@ const BlochArrow = ({ vector }: { vector: BlochVector }) => {
   
   // Handle the zero vector case (e.g. completely mixed state)
   if (endPoint.length() < 0.001) {
-      return <mesh position={[0,0,0]}><sphereGeometry args={[0.05, 16, 16]}/><meshBasicMaterial color="#ff007a"/></mesh>;
+    return <mesh position={[0,0,0]}><sphereGeometry args={[0.05, 16, 16]}/><meshBasicMaterial color="#ff007a"/></mesh>;
   }
   
   const dir = endPoint.clone().normalize();
@@ -32,12 +32,14 @@ const BlochArrow = ({ vector }: { vector: BlochVector }) => {
 export const BlochSphereViewer: React.FC<BlochSphereViewerProps> = ({ vector, qubitIndex }) => {
   return (
     <div className="w-full h-64 relative overflow-hidden">
-      <div className="absolute top-2 left-2 z-10 text-emerald-400 font-mono text-xs font-medium bg-black/50 border border-white/10 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm">
+      {/* Qubit Badge */}
+      <div className="absolute top-2 left-2 z-10 text-emerald-400 font-mono text-xs font-bold bg-slate-900/90 border border-emerald-500/30 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm">
         q[{qubitIndex}]
       </div>
       
-      <div className="absolute bottom-2 left-2 z-10 text-qp-text-muted font-mono text-[10px] bg-black/50 border border-white/10 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm">
-        X: {vector.x.toFixed(2)} | Y: {vector.y.toFixed(2)} | Z: {vector.z.toFixed(2)}
+      {/* Coordinates Pill Badge - Crisp High Contrast Text */}
+      <div className="absolute bottom-2 left-2 z-10 text-white font-mono text-[11px] font-semibold bg-slate-900/90 border border-slate-700/60 px-3 py-1 rounded-lg backdrop-blur-md shadow-sm">
+        X: <span className="text-emerald-400 font-bold">{vector.x.toFixed(2)}</span> | Y: <span className="text-emerald-400 font-bold">{vector.y.toFixed(2)}</span> | Z: <span className="text-emerald-400 font-bold">{vector.z.toFixed(2)}</span>
       </div>
 
       <Canvas camera={{ position: [1.8, 1.8, 1.8], fov: 45 }}>

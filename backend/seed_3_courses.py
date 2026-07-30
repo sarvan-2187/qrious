@@ -5,12 +5,11 @@ from database import connect_to_mongo, get_db
 
 SYSTEM_EDUCATOR_UID = "system_educator_qrious"
 
-DOMAIN_COURSES = [
+THREE_COURSES = [
     # -------------------------------------------------------------
     # COURSE 1: Recorded Video & PDF Lecture Masterclass
     # -------------------------------------------------------------
     {
-        "slug": "qc-101",
         "title": "Quantum Computing 101: Fundamentals & Circuit Mechanics",
         "description": "Master qubits, superposition, Bloch sphere representation, and circuit gates with pre-recorded video lectures, PDF slide decks, study notes, and cheatsheets.",
         "category": "CS",
@@ -83,10 +82,9 @@ DOMAIN_COURSES = [
     },
 
     # -------------------------------------------------------------
-    # COURSE 2: Interactive Quantum Circuit Lab & Gate Playground
+    # COURSE 2: Hands-On Interactive Quantum Gate Lab
     # -------------------------------------------------------------
     {
-        "slug": "interactive-circuit-lab",
         "title": "Interactive Quantum Circuit Lab & Gate Playground",
         "description": "Hands-on interactive quantum lab course. Build, simulate, and debug quantum circuits directly inside your lesson slides using embedded gate playgrounds.",
         "category": "Hardware",
@@ -104,7 +102,7 @@ DOMAIN_COURSES = [
                         "order": 1,
                         "resources": [
                             {
-                                "title": "Interactive Lab: Build a Bell State (|Φ+⟩)",
+                                "title": "🧪 Interactive Lab: Build a Bell State (|Φ+⟩)",
                                 "description": "Task: Place a Hadamard gate (H) on Qubit 0 to create equal superposition, then place a CNOT (CX) gate controlled on Qubit 0 targeting Qubit 1. Run simulation to verify statevector [0.707, 0, 0, 0.707].",
                                 "resource_type": "interactive_lab",
                                 "url": "interactive_lab_bell_state",
@@ -117,7 +115,7 @@ DOMAIN_COURSES = [
                         "order": 2,
                         "resources": [
                             {
-                                "title": "Interactive Lab: Quantum Teleportation Circuit Challenge",
+                                "title": "🧪 Interactive Lab: Quantum Teleportation Circuit Challenge",
                                 "description": "Task: Construct the 3-qubit quantum teleportation protocol. Entangle Qubits 1 and 2, perform Bell measurement on Qubits 0 and 1, and apply conditional Pauli X/Z corrections on Qubit 2.",
                                 "resource_type": "interactive_lab",
                                 "url": "interactive_lab_teleportation",
@@ -136,7 +134,7 @@ DOMAIN_COURSES = [
                         "order": 1,
                         "resources": [
                             {
-                                "title": "Interactive Lab: Balanced vs Constant Oracle Simulation",
+                                "title": "🧪 Interactive Lab: Balanced vs Constant Oracle Simulation",
                                 "description": "Task: Build a 2-qubit Deutsch algorithm circuit. Place H gates on both input and ancilla qubits, insert a CNOT oracle, and measure the input qubit to determine function parity.",
                                 "resource_type": "interactive_lab",
                                 "url": "interactive_lab_deutsch",
@@ -153,7 +151,6 @@ DOMAIN_COURSES = [
     # COURSE 3: Live Interactive Masterclass & Cohort Sessions
     # -------------------------------------------------------------
     {
-        "slug": "qml-live-cohort",
         "title": "Quantum Machine Learning & Algorithms: Live Cohort Masterclass",
         "description": "Live instructor-led quantum cohort. Join weekly interactive live lecture sessions, participate in real-time Q&A, and access archived live recordings.",
         "category": "Electrical",
@@ -192,35 +189,22 @@ DOMAIN_COURSES = [
     }
 ]
 
-async def seed_domain_courses(db: AsyncIOMotorDatabase) -> dict:
+async def seed():
+    print("Connecting to MongoDB...")
+    await connect_to_mongo()
+    db = get_db()
     if db is None:
-        return {"status": "error", "message": "Database not connected"}
-    
-    # Remove any courses not in DOMAIN_COURSES to keep MongoDB strictly synced
-    desired_titles = set(c["title"] for c in DOMAIN_COURSES)
-    old_courses = await db.courses.find().to_list(1000)
-    for old_c in old_courses:
-        if old_c.get("title") not in desired_titles:
-            c_id = old_c["_id"]
-            existing_mods = await db.modules.find({"course_id": c_id}).to_list(1000)
-            existing_mod_ids = [m["_id"] for m in existing_mods]
-            existing_less = await db.lessons.find({"module_id": {"$in": existing_mod_ids}}).to_list(2000)
-            existing_les_ids = [l["_id"] for l in existing_less]
+        print("Error: Could not connect to database")
+        return
 
-            await db.resources.delete_many({"lesson_id": {"$in": existing_les_ids}})
-            await db.lessons.delete_many({"module_id": {"$in": existing_mod_ids}})
-            await db.modules.delete_many({"course_id": c_id})
-            await db.live_sessions.delete_many({"course_id": c_id})
-            await db.courses.delete_one({"_id": c_id})
+    print("Clearing old course records...")
+    await db.resources.drop()
+    await db.lessons.drop()
+    await db.modules.drop()
+    await db.courses.drop()
+    await db.live_sessions.drop()
 
-    created_courses = 0
-    created_modules = 0
-    created_lessons = 0
-    created_resources = 0
-
-    for c_data in DOMAIN_COURSES:
-        existing_course = await db.courses.find_one({"title": c_data["title"]})
-        
+    for c_data in THREE_COURSES:
         course_doc = {
             "title": c_data["title"],
             "description": c_data["description"],
@@ -230,96 +214,68 @@ async def seed_domain_courses(db: AsyncIOMotorDatabase) -> dict:
             "tags": c_data["tags"],
             "owner_uid": SYSTEM_EDUCATOR_UID,
             "status": "published",
-            "format": c_data.get("format", "recorded"),
+            "format": c_data["format"],
+            "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc)
         }
-        
-        if existing_course:
-            course_id = existing_course["_id"]
-            await db.courses.update_one({"_id": course_id}, {"$set": course_doc})
-        else:
-            course_doc["created_at"] = datetime.now(timezone.utc)
-            res = await db.courses.insert_one(course_doc)
-            course_id = res.inserted_id
-            created_courses += 1
+        res = await db.courses.insert_one(course_doc)
+        course_id = res.inserted_id
+        print(f"Created Course [{c_data['format'].upper()}]: '{c_data['title']}' (ID: {course_id})")
 
-        if c_data.get("format") == "live":
-            existing_live = await db.live_sessions.find_one({"course_id": course_id})
-            if not existing_live:
-                session1 = {
-                    "course_id": course_id,
-                    "title": "Live Masterclass 1: Variational Circuit Architecture & Ansatz Tuning",
-                    "scheduled_at": datetime.now(timezone.utc).isoformat(),
-                    "status": "scheduled",
-                    "room_name": f"live-room-qml-masterclass-01",
-                    "created_by": SYSTEM_EDUCATOR_UID
+        # If live course, seed live sessions
+        if c_data["format"] == "live":
+            session1 = {
+                "course_id": course_id,
+                "title": "Live Masterclass 1: Variational Circuit Architecture & Ansatz Tuning",
+                "scheduled_at": datetime.now(timezone.utc).isoformat(),
+                "status": "scheduled",
+                "room_name": f"live-room-qml-masterclass-01",
+                "created_by": SYSTEM_EDUCATOR_UID
+            }
+            session2 = {
+                "course_id": course_id,
+                "title": "Live Masterclass 2: Quantum Support Vector Classifiers (QSVC) Archive",
+                "scheduled_at": datetime.now(timezone.utc).isoformat(),
+                "status": "recording_ready",
+                "room_name": f"live-room-qml-masterclass-02",
+                "created_by": SYSTEM_EDUCATOR_UID
+            }
+            await db.live_sessions.insert_many([session1, session2])
+            print("  -> Seeded 2 Live Sessions (Scheduled & Recording Ready)")
+
+        for m_data in c_data["modules"]:
+            mod_doc = {
+                "course_id": course_id,
+                "title": m_data["title"],
+                "order": m_data["order"]
+            }
+            mod_res = await db.modules.insert_one(mod_doc)
+            module_id = mod_res.inserted_id
+
+            for l_data in m_data["lessons"]:
+                les_doc = {
+                    "module_id": module_id,
+                    "title": l_data["title"],
+                    "order": l_data["order"]
                 }
-                session2 = {
-                    "course_id": course_id,
-                    "title": "Live Masterclass 2: Quantum Support Vector Classifiers (QSVC) Archive",
-                    "scheduled_at": datetime.now(timezone.utc).isoformat(),
-                    "status": "recording_ready",
-                    "room_name": f"live-room-qml-masterclass-02",
-                    "created_by": SYSTEM_EDUCATOR_UID
-                }
-                await db.live_sessions.insert_many([session1, session2])
+                les_res = await db.lessons.insert_one(les_doc)
+                lesson_id = les_res.inserted_id
 
-        # IMPORTANT: Only seed modules/lessons/resources for NEW courses.
-        # For existing courses we preserve all IDs so that enrollment progress,
-        # lesson_progress, and user-uploaded resources are never orphaned on restart.
-        existing_mods = await db.modules.find({"course_id": course_id}).to_list(100)
-
-        if not existing_mods:
-            # Brand-new course — seed the full curriculum structure
-            for m_data in c_data["modules"]:
-                mod_doc = {
-                    "course_id": course_id,
-                    "title": m_data["title"],
-                    "order": m_data["order"]
-                }
-                mod_res = await db.modules.insert_one(mod_doc)
-                module_id = mod_res.inserted_id
-                created_modules += 1
-
-                for l_data in m_data["lessons"]:
-                    les_doc = {
-                        "module_id": module_id,
-                        "title": l_data["title"],
-                        "order": l_data["order"]
+                for r_data in l_data["resources"]:
+                    res_doc = {
+                        "lesson_id": lesson_id,
+                        "resource_type": r_data["resource_type"],
+                        "title": r_data["title"],
+                        "description": r_data["description"],
+                        "filename": r_data["filename"],
+                        "b2_key": r_data["url"],
+                        "uploaded_by": SYSTEM_EDUCATOR_UID,
+                        "uploaded_at": datetime.now(timezone.utc),
+                        "status": "confirmed"
                     }
-                    les_res = await db.lessons.insert_one(les_doc)
-                    lesson_id = les_res.inserted_id
-                    created_lessons += 1
+                    await db.resources.insert_one(res_doc)
 
-                    for r_data in l_data["resources"]:
-                        res_doc = {
-                            "lesson_id": lesson_id,
-                            "resource_type": r_data["resource_type"],
-                            "title": r_data["title"],
-                            "description": r_data["description"],
-                            "filename": r_data["filename"],
-                            "b2_key": r_data["url"],
-                            "uploaded_by": SYSTEM_EDUCATOR_UID,
-                            "uploaded_at": datetime.now(timezone.utc),
-                            "status": "confirmed"
-                        }
-                        await db.resources.insert_one(res_doc)
-                        created_resources += 1
-        # else: course already has modules — skip re-seeding to preserve stable IDs
+    print("\nSuccessfully seeded exactly 3 courses in MongoDB representing recorded, lab, and live modalities!")
 
-    return {
-        "status": "success",
-        "courses_count": created_courses,
-        "modules_count": created_modules,
-        "lessons_count": created_lessons,
-        "resources_count": created_resources
-    }
-
-async def main():
-    await connect_to_mongo()
-    db = get_db()
-    res = await seed_domain_courses(db)
-    print("Course Seed Result:", res)
-
-if __name__ == '__main__':
-    asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(seed())

@@ -29,11 +29,11 @@ export const StatevectorTable: React.FC<StatevectorTableProps> = ({ statevector 
               
               return (
                 <tr key={idx} className="hover:bg-qp-hover/50 transition-colors">
-                  <td className="py-2.5 text-emerald-400 font-medium">|{bin}⟩</td>
-                  <td className="py-2.5 text-qp-text">
+                  <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-semibold">|{bin}⟩</td>
+                  <td className="py-2.5 text-slate-900 dark:text-qp-text font-medium">
                     {amp.real.toFixed(3)}{imagStr}
                   </td>
-                  <td className="py-2.5 text-qp-text-muted">{(prob * 100).toFixed(1)}%</td>
+                  <td className="py-2.5 text-slate-700 dark:text-qp-text-muted font-medium">{(prob * 100).toFixed(1)}%</td>
                 </tr>
               );
             })}

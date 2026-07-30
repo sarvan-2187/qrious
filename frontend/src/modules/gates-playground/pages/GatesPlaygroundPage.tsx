@@ -54,7 +54,12 @@ counts = result.get_counts()
 print("Counts:", counts)
 `;
 
-const GatesPlaygroundPage: React.FC = () => {
+interface GatesPlaygroundPageProps {
+  initialQasm?: string;
+  isEmbedded?: boolean;
+}
+
+const GatesPlaygroundPage: React.FC<GatesPlaygroundPageProps> = ({ initialQasm, isEmbedded = false }) => {
   const { 
     qubits, setQubits, cbits, setCbits, gates, addGate, setGates, qasm, updateQasm, updateGate, removeGate, expandMacroGate,
     commitHistory, undo, redo, historyIndex
@@ -486,6 +491,12 @@ const GatesPlaygroundPage: React.FC = () => {
     if (selectedLanguage === 'cirq') return;
     if (!validateEmptyCircuit()) return;
 
+    if (isDebugMode) {
+      setIsDebugMode(false);
+      setDebugTrace(null);
+      return;
+    }
+
     // Use the correct code for the active language
     const codeToDebug = selectedLanguage === 'openqasm2' ? qasm : pythonCode;
     setIsDebugMode(true);
@@ -561,8 +572,8 @@ const GatesPlaygroundPage: React.FC = () => {
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="flex h-[calc(100vh-3.5rem)] w-full overflow-hidden">
-      <div tabIndex={-1} className="flex flex-1 flex-col h-full overflow-auto bg-qp-bg text-qp-text font-sans transition-all duration-300 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] outline-none">
+      <div className={cn("flex flex-col w-full bg-qp-bg text-qp-text font-sans", isEmbedded ? "h-auto overflow-visible" : "h-[calc(100vh-3.5rem)] overflow-hidden")}>
+      <div tabIndex={-1} className={cn("flex flex-1 flex-col font-sans outline-none bg-qp-bg text-qp-text", isEmbedded ? "h-auto overflow-visible" : "h-full overflow-auto custom-scrollbar")}>
         
         {/* Algorithm Context Banner */}
         <AnimatePresence>
@@ -614,169 +625,92 @@ const GatesPlaygroundPage: React.FC = () => {
                 </div>
                 
                 <div className="flex shrink-0 items-center gap-3">
-
-                  <div className="grid grid-cols-3 gap-1.5 shrink-0 bg-qp-secondary/50 p-1.5 rounded-xl border border-qp-border">
-                  {/* Row 1: Save | Clear | Debug */}
-                  <button 
-                    onClick={handleSave} 
-                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm active:scale-95 whitespace-nowrap"
-                    title="Save Circuit to local storage (Ctrl+S)"
-                  >
-                    <FaSave className="w-3 h-3 text-emerald-400" /> {saveStatus || 'Save'}
-                  </button>
-
-                  <button 
-                    onClick={handleClear} 
-                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text-muted hover:text-qp-text border-qp-border shadow-sm whitespace-nowrap"
-                    title="Clear Circuit"
-                  >
-                    <FaTrash className="w-3 h-3" /> Clear
-                  </button>
-
-                  <button 
-                    onClick={handleDebugRun}
-                    disabled={selectedLanguage === 'cirq' || quantumLoading}
-                    title={selectedLanguage === 'cirq' ? 'Debug is disabled for CIRQ (Coming Soon)' : 'Debug code with step-by-step trace'}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border shadow-sm whitespace-nowrap",
-                      selectedLanguage === 'cirq' || quantumLoading
-                        ? "opacity-40 cursor-not-allowed bg-qp-card text-qp-text-muted border-qp-border"
-                        : isDebugMode 
-                          ? "bg-qp-card text-qp-text border-qp-text-muted" 
-                          : "bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border"
-                    )}
-                  >
-                    <FaBug className="w-3 h-3" /> Debug
-                  </button>
-
-                  {/* Row 2: Import | Run | Real Hardware */}
-                  <button 
-                    onClick={handleImportClick} 
-                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm active:scale-95 whitespace-nowrap"
-                    title="Import .qasm File"
-                  >
-                    <FaFolderOpen className="w-3 h-3 text-amber-400" /> Import
-                  </button>
-
-                  <button
-                    onClick={handleRun}
-                    disabled={simLoading || execLoading || quantumLoading || selectedLanguage === 'cirq'}
-                    title={selectedLanguage === 'cirq' ? 'Run is disabled for CIRQ (Coming Soon)' : 'Run code'}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 px-3 py-1 bg-qp-card text-qp-text rounded-lg font-medium transition-all text-xs shadow-sm border border-qp-border whitespace-nowrap",
-                      selectedLanguage === 'cirq' || simLoading || execLoading || quantumLoading
-                        ? 'opacity-40 cursor-not-allowed'
-                        : 'hover:bg-qp-hover',
-                    )}
-                  >
-                    <FaPlay className="w-2.5 h-2.5 shrink-0" />
-                    {simLoading || execLoading || quantumLoading ? 'Running...' : 'Run'}
-                  </button>
-
-                  <button
-                    onClick={handleSendToHardware}
-                    disabled={gates.length === 0}
-                    title={gates.length === 0
-                      ? 'Add at least one gate before sending this circuit to real hardware'
-                      : 'Open this circuit in QRoute to run it on real quantum hardware'}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm disabled:opacity-30 disabled:hover:bg-qp-card active:scale-95 whitespace-nowrap"
-                  >
-                    <FaSatelliteDish className="w-3 h-3 text-emerald-400" /> Real Hardware
-                  </button>
-
-                  {/* Row 3: Export | Undo | Redo */}
-                  <button 
-                    onClick={handleExport} 
-                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm active:scale-95 whitespace-nowrap"
-                    title="Export .qasm File"
-                  >
-                    <FaDownload className="w-3 h-3 text-blue-400" /> Export
-                  </button>
-
-                  <button 
-                    onClick={handleUndo} 
-                    disabled={historyIndex <= 0}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm disabled:opacity-30 disabled:hover:bg-qp-card active:scale-95 whitespace-nowrap"
-                    title="Undo (Ctrl+Z)"
-                  >
-                    <FaUndo className="w-2.5 h-2.5" /> Undo
-                  </button>
-
-                  <button 
-                    onClick={handleRedo} 
-                    disabled={historyIndex >= history.length - 1}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm disabled:opacity-30 disabled:hover:bg-qp-card active:scale-95 whitespace-nowrap"
-                    title="Redo (Ctrl+Y)"
-                  >
-                    <FaRedo className="w-2.5 h-2.5" /> Redo
-                  </button>
-
-                  <Dialog>
-                    <DialogTrigger asChild>
+                  {isEmbedded ? (
+                    <div className="flex items-center gap-2 bg-qp-secondary/50 p-1.5 rounded-xl border border-qp-border">
                       <button 
-                        className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm active:scale-95 whitespace-nowrap"
-                        title="Keyboard Shortcuts"
+                        onClick={handleRun}
+                        disabled={simLoading || execLoading || quantumLoading || selectedLanguage === 'cirq'}
+                        title="Run code simulation"
+                        className={cn(
+                          "flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-xs shadow-md transition-all active:scale-95 whitespace-nowrap",
+                          (simLoading || execLoading || quantumLoading) && "opacity-50 cursor-not-allowed"
+                        )}
                       >
-                        <FaKeyboard className="w-3 h-3 text-purple-400" /> Shortcut
+                        <FaPlay className="w-2.5 h-2.5 shrink-0" />
+                        {simLoading || execLoading || quantumLoading ? 'Running...' : 'Run'}
                       </button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md max-h-[80vh] overflow-auto">
-                      <DialogHeader>
-                        <DialogTitle>Keyboard Shortcuts</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="font-semibold mb-2 text-sm text-muted-foreground">General</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Save</span><kbd>Ctrl+S</kbd>
-                              </div>
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Undo</span><kbd>Ctrl+Z</kbd>
-                              </div>
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Redo</span><kbd>Ctrl+Y</kbd>
-                              </div>
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Cancel</span><kbd>Escape</kbd>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h4 className="font-semibold mb-2 text-sm text-muted-foreground">Circuit Controls</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Add Qubit</span><kbd>Ctrl+Up</kbd>
-                              </div>
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Remove Qubit</span><kbd>Ctrl+Down</kbd>
-                              </div>
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Add Cbit</span><kbd>Alt+Up</kbd>
-                              </div>
-                              <div className="flex justify-between p-2 bg-secondary/50 rounded">
-                                <span>Remove Cbit</span><kbd>Alt+Down</kbd>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h4 className="font-semibold mb-2 text-sm text-muted-foreground">Gates</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              {Object.entries(SHORTCUTS).map(([keyStr, { gate, label }]) => (
-                                <div key={keyStr} className="flex justify-between p-2 bg-secondary/50 rounded items-center">
-                                  <span className="font-mono text-xs font-semibold">{gate}</span>
-                                  <kbd>{label}</kbd>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+
+                      <button 
+                        onClick={handleDebugRun}
+                        disabled={selectedLanguage === 'cirq' || quantumLoading}
+                        title="Debug code with step-by-step trace"
+                        className={cn(
+                          "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-xs border shadow-sm whitespace-nowrap",
+                          isDebugMode 
+                            ? "bg-purple-950/60 text-purple-200 border-purple-600" 
+                            : "bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border"
+                        )}
+                      >
+                        <FaBug className="w-3 h-3 text-purple-400" /> Debug
+                      </button>
+
+                      <button 
+                        onClick={handleUndo} 
+                        disabled={historyIndex <= 0}
+                        className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm disabled:opacity-30 disabled:hover:bg-qp-card active:scale-95 whitespace-nowrap"
+                        title="Undo (Ctrl+Z)"
+                      >
+                        <FaUndo className="w-2.5 h-2.5" /> Undo
+                      </button>
+
+                      <button 
+                        onClick={handleRedo} 
+                        disabled={historyIndex >= 100}
+                        className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm disabled:opacity-30 disabled:hover:bg-qp-card active:scale-95 whitespace-nowrap"
+                        title="Redo (Ctrl+Y)"
+                      >
+                        <FaRedo className="w-2.5 h-2.5" /> Redo
+                      </button>
+
+                      <button 
+                        onClick={handleClear} 
+                        className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-destructive hover:text-destructive border-qp-border shadow-sm whitespace-nowrap"
+                        title="Clear Circuit"
+                      >
+                        <FaTrash className="w-3 h-3" /> Clear
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-1.5 shrink-0 bg-qp-secondary/50 p-1.5 rounded-xl border border-qp-border">
+                      <button onClick={handleSave} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm active:scale-95 whitespace-nowrap">
+                        <FaSave className="w-3 h-3 text-emerald-400" /> {saveStatus || 'Save'}
+                      </button>
+                      <button onClick={handleClear} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text-muted hover:text-qp-text border-qp-border shadow-sm whitespace-nowrap">
+                        <FaTrash className="w-3 h-3" /> Clear
+                      </button>
+                      <button onClick={handleDebugRun} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm whitespace-nowrap">
+                        <FaBug className="w-3 h-3" /> Debug
+                      </button>
+                      <button onClick={handleImportClick} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm active:scale-95 whitespace-nowrap">
+                        <FaFolderOpen className="w-3 h-3 text-amber-400" /> Import
+                      </button>
+                      <button onClick={handleRun} className="flex items-center justify-center gap-1.5 px-3 py-1 bg-qp-card text-qp-text rounded-lg font-medium transition-all text-xs shadow-sm border border-qp-border whitespace-nowrap">
+                        <FaPlay className="w-2.5 h-2.5 shrink-0" /> Run
+                      </button>
+                      <button onClick={handleSendToHardware} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm whitespace-nowrap">
+                        <FaSatelliteDish className="w-3 h-3 text-emerald-400" /> Real Hardware
+                      </button>
+                      <button onClick={handleExport} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm whitespace-nowrap">
+                        <FaDownload className="w-3 h-3 text-blue-400" /> Export
+                      </button>
+                      <button onClick={handleUndo} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm whitespace-nowrap">
+                        <FaUndo className="w-2.5 h-2.5" /> Undo
+                      </button>
+                      <button onClick={handleRedo} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm whitespace-nowrap">
+                        <FaRedo className="w-2.5 h-2.5" /> Redo
+                      </button>
+                    </div>
+                  )}
 
                   <input 
                     type="file" 
@@ -785,7 +719,6 @@ const GatesPlaygroundPage: React.FC = () => {
                     className="hidden" 
                     onChange={handleFileImport} 
                   />
-                </div>
                 </div>
               </div>
             </div>
@@ -896,7 +829,7 @@ const GatesPlaygroundPage: React.FC = () => {
           {(isDebugMode || debugTrace) && (
             <div id="debug-panel-container" className="p-8 bg-qp-bg border-t border-qp-border shrink-0 min-h-[600px] pb-16">
               {(selectedLanguage === 'openqasm2' || selectedLanguage === 'qiskit') && gates.length > 0 && (
-                <DebuggerPanel qubits={qubits} cbits={cbits} gates={gates} />
+                <DebuggerPanel qubits={qubits} cbits={cbits} gates={gates} onExitDebug={() => { setIsDebugMode(false); setDebugTrace(null); }} />
               )}
               {debugTrace && debugTrace.length > 0 && (
                 <div className="mt-6 space-y-2">
