@@ -14,10 +14,12 @@ import {
   FaUndo,
   FaRedo,
   FaDownload,
+  FaMapSigns,
 } from "react-icons/fa";
 import { toast } from "sonner";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface NoteEditorProps {
   note: Note;
@@ -276,6 +278,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [tagInput, setTagInput] = useState(note.tags?.join(", ") || "");
   const [activeTab, setActiveTab] = useState<"split" | "edit" | "preview">("split");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPreview, setIsPreview] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Reference for inserting markdown wrapping
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Download as PDF
@@ -498,6 +505,21 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
                 : "All changes saved"}
             </div>
+          )}
+          {note.topic_slug && (
+            <button
+              type="button"
+              onClick={() => navigate(`/roadmap?topic=${note.topic_slug}`)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 text-xs font-mono font-medium shadow-sm",
+                theme === "dark"
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+              )}
+              title="Jump to Roadmap Topic"
+            >
+              <FaMapSigns /> Roadmap
+            </button>
           )}
           <button
             type="button"
