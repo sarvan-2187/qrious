@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { BuildGraphState } from './useBuildState';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 interface ValidateResponse {
   valid: boolean;
   messages: string[];
@@ -23,7 +25,7 @@ export const useQForgeApi = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/qforge/validate', {
+      const response = await fetch(`${API_URL}/api/v1/qforge/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(graph),
@@ -42,7 +44,7 @@ export const useQForgeApi = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/qforge/score', {
+      const response = await fetch(`${API_URL}/api/v1/qforge/score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(graph),
@@ -58,11 +60,10 @@ export const useQForgeApi = () => {
   };
 
   const saveBuild = async (graph: BuildGraphState) => {
-    // Phase 1: MongoDB Save
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/qforge/builds', {
+      const response = await fetch(`${API_URL}/api/v1/qforge/builds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(graph),
