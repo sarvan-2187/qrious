@@ -22,7 +22,7 @@ const QASM_LANGUAGE_ID = 'qasm2';
 
 function registerQasmLanguage(monaco: Monaco) {
   // Register only once
-  const existing = monaco.languages.getLanguages().find(l => l.id === QASM_LANGUAGE_ID);
+  const existing = monaco.languages.getLanguages().find((l: { id: string }) => l.id === QASM_LANGUAGE_ID);
   if (existing) return;
 
   monaco.languages.register({ id: QASM_LANGUAGE_ID, extensions: ['.qasm'], aliases: ['OpenQASM 2.0', 'qasm'] });

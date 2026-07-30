@@ -133,7 +133,9 @@ export const AnalyticsPage: React.FC = () => {
           <div className="p-4 bg-red-100/10 border border-red-500/20 text-red-500 rounded-lg text-center max-w-lg mx-auto">
             <p className="text-sm font-sans mb-3">{error}</p>
             <button
-              onClick={loadDashboard}
+              // Bare handler passed React's MouseEvent as loadDashboard's
+              // roadmapId argument — retry refetched against a bogus id.
+              onClick={() => loadDashboard()}
               className="px-5 py-2 bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 font-medium text-xs transition-colors flex items-center gap-2 mx-auto"
             >
               <FaRedo className="text-xs" /> Retry Loading Metrics

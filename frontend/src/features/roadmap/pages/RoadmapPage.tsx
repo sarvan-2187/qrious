@@ -580,7 +580,9 @@ export const RoadmapPage: React.FC = () => {
             isDark ? "bg-zinc-950/80 border-white/10 text-white" : "bg-white border-zinc-200 text-zinc-900"
           )}>
             <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-3xl flex items-center justify-center mb-4 shadow-inner">
-              {DOMAIN_FILTERS.find(d => d.id === selectedDomain)?.icon || '⚛️'}
+              {/* No DOMAIN_FILTERS entry carries an icon, so the lookup always
+                  fell through to this fallback. */}
+              ⚛️
             </div>
             <h2 className="text-2xl font-sans font-normal tracking-tight mb-2">
               {DOMAIN_FILTERS.find(d => d.id === selectedDomain)?.label} Roadmap

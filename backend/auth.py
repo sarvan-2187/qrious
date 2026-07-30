@@ -1,3 +1,4 @@
+import json
 import os
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -10,14 +11,26 @@ security = HTTPBearer()
 # Initialize Firebase Admin
 def init_firebase():
     if not firebase_admin._apps:
-        # Require service account key path from env var
+        # The service-account key is no longer committed to the repo, so the
+        # deployed app has no file to point FIREBASE_SERVICE_ACCOUNT_PATH at.
+        # credentials.Certificate() also accepts a parsed dict, so prefer the
+        # whole JSON blob in an env var; the file path stays supported for
+        # local dev where the key does sit on disk.
+        cred_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
         cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH")
-        if not cred_path:
-            raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_PATH environment variable is not set")
-        
+
+        if cred_json:
+            source = credentials.Certificate(json.loads(cred_json))
+        elif cred_path:
+            source = credentials.Certificate(cred_path)
+        else:
+            raise RuntimeError(
+                "Set FIREBASE_SERVICE_ACCOUNT_JSON (the key file's full contents) "
+                "or FIREBASE_SERVICE_ACCOUNT_PATH (a path to it)"
+            )
+
         try:
-            cred = credentials.Certificate(cred_path)
-            firebase_admin.initialize_app(cred)
+            firebase_admin.initialize_app(source)
         except Exception as e:
             print(f"Error initializing Firebase Admin SDK: {e}")
             raise e
