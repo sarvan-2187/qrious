@@ -24,6 +24,13 @@
   - `tests/test_phase6_analytics.py::test_weak_concept_calculation_and_sorting`
 
   Baseline is **6 failed, 44 passed**. Success means the failure list is unchanged and the pass count has grown by exactly your new tests.
+- **Frontend `npx tsc -b --noEmit` is NOT clean on this branch either.** Four files fail before any of this work, and are NOT your concern:
+  - `src/components/ScheduleReviewModal.tsx` (`isDark` missing on `ThemeContextType`)
+  - `src/modules/qforge/components/ComponentTray.tsx` (`Record<ComponentKind, string>` missing `dc_block`, `digitizer`)
+  - `src/modules/qforge/components/CryostatScene.tsx` (invalid r3f props)
+  - `src/modules/qforge/components/StartBuildView.tsx` (`coolingPower`, `volume` missing on `CryostatSpec`)
+
+  Success means **no NEW file** appears in the tsc output. Do not attempt to fix these four.
 - **Test style:** plain `pytest` functions, no fixtures, no frameworks beyond `pytest` and `unittest.mock`. Match `backend/tests/test_device_fetch_budget.py`.
 - **Frontend conventions:** icons come from `react-icons/fa` (v5 names — `FaExclamationTriangle`, *not* the fa6 `FaTriangleExclamation`); shared UI imports use the `@/` alias (`@/components/ui/card`), module-local imports stay relative (`../hooks/useQRouteApi`). See `QRoutePage.tsx:13-17`.
 - **Do not modify** `DeviceInfo`'s five existing required keys, or any adapter's `submit_job` / `get_job_result` signature. Four adapters depend on them.
