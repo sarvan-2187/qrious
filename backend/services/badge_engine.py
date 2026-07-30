@@ -277,6 +277,35 @@ SEED_BADGES: List[Dict[str, Any]] = [
         "category": "puzzle",
         "rarity": "legendary",
         "xp_bonus": 300
+    },
+
+    # --- QFORGE SIMULATOR ---
+    {
+        "badge_id": "qforge_first_cooldown",
+        "title": "Cryogenic Explorer",
+        "description": "Reached base temperature on your first QForge build.",
+        "icon": "FaSnowflake",
+        "category": "qforge",
+        "rarity": "common",
+        "xp_bonus": 50
+    },
+    {
+        "badge_id": "qforge_signal_master",
+        "title": "Signal Integrity Master",
+        "description": "Achieved zero signal-integrity warnings in QForge.",
+        "icon": "FaWaveSquare",
+        "category": "qforge",
+        "rarity": "rare",
+        "xp_bonus": 100
+    },
+    {
+        "badge_id": "qforge_calibrated",
+        "title": "Calibration Expert",
+        "description": "Completed calibration of a superconducting QPU.",
+        "icon": "FaSlidersH",
+        "category": "qforge",
+        "rarity": "epic",
+        "xp_bonus": 150
     }
 ]
 
