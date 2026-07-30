@@ -5,9 +5,10 @@ export interface PomodoroState {
   secondsLeft: number;
   isRunning: boolean;
   isPanelOpen: boolean;
-  pomodoroCount: number; // completed work sessions in current cycle (0-3)
-  totalCompleted: number; // all-time completed sessions this session
-  isDndActive: boolean; // true when timer is running in work phase
+  pomodoroCount: number;      // completed work sessions in current cycle (0-3)
+  totalCompleted: number;     // all-time completed sessions this session
+  penaltyActive: boolean;     // true when user abandoned by leaving fullscreen
+  penaltySecondsLost: number; // how many seconds they had completed before bailing
 }
 
 export type PomodoroAction =
@@ -17,7 +18,10 @@ export type PomodoroAction =
   | { type: 'SET_PHASE'; payload: PomodoroPhase }
   | { type: 'SKIP' }
   | { type: 'RESET' }
-  | { type: 'COMPLETE_SESSION' };
+  | { type: 'COMPLETE_SESSION' }
+  | { type: 'APPLY_PENALTY'; payload: { secondsCompleted: number } }
+  | { type: 'CLEAR_PENALTY' };
+
 
 export interface PomodoroContextValue {
   state: PomodoroState;

@@ -52,6 +52,7 @@ import QStudioLibraryPage from './modules/qstudio/pages/QStudioLibraryPage';
 import QStudioStudySpacePage from './modules/qstudio/pages/QStudioStudySpacePage';
 import QStudioLocalOnlyPage from './modules/qstudio/pages/QStudioLocalOnlyPage';
 import { PomodoroProvider } from './features/focus/context/PomodoroContext';
+import FocusModePage from './pages/FocusModePage';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -162,6 +163,11 @@ function App() {
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/focus" element={
+                  <ProtectedRoute>
+                    <FocusModePage />
                   </ProtectedRoute>
                 } />
                 <Route path="/roadmap" element={

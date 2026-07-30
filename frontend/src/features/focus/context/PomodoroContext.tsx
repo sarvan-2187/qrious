@@ -3,8 +3,6 @@ import type { ReactNode } from 'react';
 import type { PomodoroState, PomodoroAction, PomodoroContextValue, PomodoroPhase } from '../types/pomodoro.types';
 import { PHASE_DURATIONS } from '../types/pomodoro.types';
 
-const DND_CLASS = 'pomodoro-dnd-active';
-
 const initialState: PomodoroState = {
   phase: 'work',
   secondsLeft: PHASE_DURATIONS.work,
@@ -12,12 +10,12 @@ const initialState: PomodoroState = {
   isPanelOpen: false,
   pomodoroCount: 0,
   totalCompleted: 0,
-  isDndActive: false,
+  penaltyActive: false,
+  penaltySecondsLost: 0,
 };
 
 function getNextPhase(phase: PomodoroPhase, pomodoroCount: number): PomodoroPhase {
   if (phase !== 'work') return 'work';
-  // After 4 work sessions → long break, otherwise short break
   return (pomodoroCount + 1) % 4 === 0 ? 'longBreak' : 'shortBreak';
 }
 
@@ -26,10 +24,7 @@ function pomodoroReducer(state: PomodoroState, action: PomodoroAction): Pomodoro
     case 'TICK': {
       if (!state.isRunning || state.secondsLeft <= 0) return state;
       const next = state.secondsLeft - 1;
-      if (next <= 0) {
-        // Session just completed — dispatch COMPLETE_SESSION asynchronously
-        return { ...state, secondsLeft: 0 };
-      }
+      if (next <= 0) return { ...state, secondsLeft: 0 };
       return { ...state, secondsLeft: next };
     }
 
@@ -42,21 +37,14 @@ function pomodoroReducer(state: PomodoroState, action: PomodoroAction): Pomodoro
         ...state,
         phase: nextPhase,
         secondsLeft: PHASE_DURATIONS[nextPhase],
-        isRunning: true, // auto-start next phase
-        pomodoroCount: newCount % 4, // cycle 0-3
+        isRunning: true,
+        pomodoroCount: newCount % 4,
         totalCompleted: newTotal,
-        isDndActive: nextPhase === 'work', // DND only during work phases
       };
     }
 
-    case 'TOGGLE_RUNNING': {
-      const nowRunning = !state.isRunning;
-      return {
-        ...state,
-        isRunning: nowRunning,
-        isDndActive: nowRunning && state.phase === 'work',
-      };
-    }
+    case 'TOGGLE_RUNNING':
+      return { ...state, isRunning: !state.isRunning };
 
     case 'TOGGLE_PANEL':
       return { ...state, isPanelOpen: !state.isPanelOpen };
@@ -67,7 +55,6 @@ function pomodoroReducer(state: PomodoroState, action: PomodoroAction): Pomodoro
         phase: action.payload,
         secondsLeft: PHASE_DURATIONS[action.payload],
         isRunning: false,
-        isDndActive: false,
       };
 
     case 'SKIP': {
@@ -81,7 +68,6 @@ function pomodoroReducer(state: PomodoroState, action: PomodoroAction): Pomodoro
         isRunning: false,
         pomodoroCount: newCount,
         totalCompleted: newTotal,
-        isDndActive: false,
       };
     }
 
@@ -90,8 +76,22 @@ function pomodoroReducer(state: PomodoroState, action: PomodoroAction): Pomodoro
         ...state,
         secondsLeft: PHASE_DURATIONS[state.phase],
         isRunning: false,
-        isDndActive: false,
       };
+
+    // ── Penalty: user escaped fullscreen mid-session ──────────────────────
+    case 'APPLY_PENALTY':
+      return {
+        ...state,
+        phase: 'work',
+        secondsLeft: PHASE_DURATIONS.work, // reset to full 25 min
+        isRunning: false,
+        isPanelOpen: true,                 // force-open so they see the penalty
+        penaltyActive: true,
+        penaltySecondsLost: action.payload.secondsCompleted,
+      };
+
+    case 'CLEAR_PENALTY':
+      return { ...state, penaltyActive: false, penaltySecondsLost: 0 };
 
     default:
       return state;
@@ -103,26 +103,31 @@ const PomodoroContext = createContext<PomodoroContextValue | null>(null);
 export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(pomodoroReducer, initialState);
   const completedRef = useRef(false);
+  // Ref so fullscreenchange handler always reads the latest lock state
+  const isLockedRef = useRef(false);
+  // Ref for current secondsLeft so penalty payload is accurate
+  const secondsLeftRef = useRef(PHASE_DURATIONS.work);
 
-  // Tick every second
+  isLockedRef.current = state.isRunning && state.phase === 'work';
+  secondsLeftRef.current = state.secondsLeft;
+
+  // ── Tick ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!state.isRunning) return;
     const id = setInterval(() => dispatch({ type: 'TICK' }), 1000);
     return () => clearInterval(id);
   }, [state.isRunning]);
 
-  // Detect session completion (secondsLeft hits 0)
+  // ── Session completion ───────────────────────────────────────────────────
   useEffect(() => {
     if (state.secondsLeft === 0 && state.isRunning && !completedRef.current) {
       completedRef.current = true;
-      // Fire event for XP hooks
       if (state.phase === 'work') {
         window.dispatchEvent(new CustomEvent('pomodoro_completed', {
           detail: { totalCompleted: state.totalCompleted + 1 },
         }));
       }
       dispatch({ type: 'COMPLETE_SESSION' });
-      // Play a subtle chime via the Web Audio API
       playCompletionChime();
     }
     if (state.secondsLeft > 0) {
@@ -130,16 +135,38 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     }
   }, [state.secondsLeft, state.isRunning, state.phase, state.totalCompleted]);
 
-  // DND — toggle `pomodoro-dnd-active` class on <html>
+  // ── Fullscreen: enter on work start, exit on pause/break ────────────────
   useEffect(() => {
-    const root = document.documentElement;
-    if (state.isDndActive) {
-      root.classList.add(DND_CLASS);
-    } else {
-      root.classList.remove(DND_CLASS);
+    const shouldBeFullscreen = state.isRunning && state.phase === 'work';
+    if (shouldBeFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else if (!shouldBeFullscreen && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
     }
-    return () => root.classList.remove(DND_CLASS);
-  }, [state.isDndActive]);
+  }, [state.isRunning, state.phase]);
+
+  // ── Penalty guard ────────────────────────────────────────────────────────
+  // If the user exits fullscreen by any means (Escape, F11, browser button)
+  // WHILE a work session is actively running → apply penalty.
+  // Normal exits (Pause/Skip/Reset via UI) change state FIRST so
+  // isLockedRef.current is already false when fullscreenchange fires → no penalty.
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && isLockedRef.current) {
+        const secondsCompleted = PHASE_DURATIONS.work - secondsLeftRef.current;
+        dispatch({ type: 'APPLY_PENALTY', payload: { secondsCompleted } });
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  // ── Cleanup on unmount ───────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
+  }, []);
 
   return (
     <PomodoroContext.Provider value={{ state, dispatch }}>
@@ -148,11 +175,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Subtle Web Audio chime (no external files needed)
 function playCompletionChime() {
   try {
     const ctx = new AudioContext();
-    const frequencies = [523.25, 659.25, 783.99]; // C5 E5 G5
+    const frequencies = [523.25, 659.25, 783.99];
     frequencies.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -167,9 +193,7 @@ function playCompletionChime() {
       osc.start(t);
       osc.stop(t + 0.6);
     });
-  } catch {
-    // AudioContext not available — silent fail
-  }
+  } catch { /* silent */ }
 }
 
 export function usePomodoroContext(): PomodoroContextValue {

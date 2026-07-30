@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { useEffect, useState } from 'react';
-import { FaBookOpen, FaCog, FaSignOutAlt, FaUpload, FaHome, FaFolderOpen, FaFlask, FaProjectDiagram, FaStickyNote, FaGlobe, FaBolt, FaFire, FaBook, FaChartLine, FaPuzzlePiece, FaUser, FaSatelliteDish, FaLightbulb, FaShareAlt } from 'react-icons/fa';
+import { FaBookOpen, FaCog, FaSignOutAlt, FaUpload, FaHome, FaFolderOpen, FaFlask, FaProjectDiagram, FaStickyNote, FaGlobe, FaBolt, FaFire, FaBook, FaChartLine, FaPuzzlePiece, FaUser, FaSatelliteDish, FaLightbulb, FaShareAlt, FaStopwatch } from 'react-icons/fa';
 import { Separator } from '@/components/ui/separator';
 import { fetchXpSummary, fetchStreakStatus } from '@/features/gamification/api';
 import type { XpSummary, StreakStatus } from '@/features/gamification/types/gamification.types';
@@ -24,7 +24,12 @@ export default function AppLayout() {
   const [streakStatus, setStreakStatus] = useState<StreakStatus | null>(null);
   const [isXpModalOpen, setIsXpModalOpen] = useState(false);
   const { state: pomodoroState } = usePomodoro();
-  const isDndActive = pomodoroState.isDndActive;
+  
+  const focusMins = String(Math.floor(pomodoroState.secondsLeft / 60)).padStart(2, '0');
+  const focusSecs = String(pomodoroState.secondsLeft % 60).padStart(2, '0');
+  const focusText = pomodoroState.isRunning 
+    ? `${focusMins}m ${focusSecs}s` 
+    : 'Focus Mode';
 
   useEffect(() => {
     async function fetchUserData() {
@@ -139,6 +144,7 @@ export default function AppLayout() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.pathname.startsWith('/playground')} tooltip="Quantum Playground">
                   <Link to="/playground">
@@ -204,6 +210,14 @@ export default function AppLayout() {
                   <Link to="/qroute">
                     <FaSatelliteDish />
                     <span>QRoute</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/focus'} tooltip={focusText}>
+                  <Link to="/focus">
+                    <FaStopwatch />
+                    <span>{focusText}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -279,12 +293,9 @@ export default function AppLayout() {
             )}>Qrious Quantum Platform</span>
           </div>
 
-          {/* Gamification Status Badges (Learners Only) — hidden during DND */}
+          {/* Gamification Status Badges (Learners Only) */}
           {!isEducator && (
-            <div className={cn(
-              "flex items-center gap-2 sm:gap-3 text-xs font-mono transition-opacity duration-500",
-              isDndActive ? "opacity-0 pointer-events-none" : "opacity-100"
-            )}>
+            <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono transition-opacity duration-500">
               {xpSummary && (
                 <div
                   onClick={() => setIsXpModalOpen(true)}
