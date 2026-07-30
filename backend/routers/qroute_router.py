@@ -29,6 +29,58 @@ QROUTE_DAILY_JOB_LIMIT = int(os.getenv("QBRAID_DAILY_JOB_LIMIT", "5"))
 _device_cache: dict = {}
 _DEVICE_CACHE_TTL_SECONDS = 600
 
+# Listing devices must never outlast the edge proxy in front of this API.
+# Cloudflare gives up at 100s with a 524, and that error page carries NO CORS
+# headers, so the browser discards it and axios reports a bare "Network Error"
+# — no status, no detail, nothing the UI can explain. That's what took QRoute
+# down in production: cold SDK imports plus per-backend status calls across
+# three providers (~18-27s locally, worse on a smaller/colder host) ran past
+# the limit. This endpoint now always answers well inside that window.
+_DEVICE_FETCH_BUDGET_SECONDS = 25
+
+# One in-flight refresh per provider, so a page that polls (or several users at
+# once) can't stack up duplicate IBM/qBraid fetches on top of each other.
+_refresh_tasks: dict[str, asyncio.Task] = {}
+
+
+def _refresh_devices(adapter) -> asyncio.Task:
+    """Starts (or joins) a background refresh of one provider's device list.
+
+    Deliberately NOT cancelled when the request that started it stops waiting:
+    a slow provider keeps loading and populates the cache, so the next request
+    gets it for free instead of timing out on the same cold start again."""
+    task = _refresh_tasks.get(adapter.provider_id)
+    if task is not None and not task.done():
+        return task
+
+    async def _run():
+        try:
+            # adapter.list_devices() is a blocking network call — offloaded
+            # to a thread (like _refresh_job_status/_is_simulator_device
+            # already are) so it doesn't stall the event loop, and every
+            # provider refreshes concurrently rather than one after another.
+            devices = await asyncio.to_thread(adapter.list_devices)
+        except Exception as e:
+            # One misbehaving provider shouldn't blank out every other
+            # provider's devices in an aggregated list.
+            print(f"[qroute_router] skipping devices for {adapter.provider_id}: {e}", flush=True)
+            return
+        _device_cache[adapter.provider_id] = {"data": devices, "fetched_at": time.monotonic()}
+
+    task = asyncio.create_task(_run())
+    _refresh_tasks[adapter.provider_id] = task
+    return task
+
+
+async def warm_device_cache():
+    """Fills the cache once at startup (main.py's lifespan) so the first user to
+    open QRoute doesn't pay for every provider's cold SDK import and network
+    round trips inside their own request."""
+    tasks = [_refresh_devices(a) for a in PROVIDER_REGISTRY.values() if a.is_configured()]
+    if tasks:
+        await asyncio.gather(*tasks)  # _run swallows its own errors
+    print(f"[qroute_router] device cache warmed for {sorted(_device_cache)}", flush=True)
+
 
 class QasmJobRequest(BaseModel):
     provider: str
@@ -72,40 +124,29 @@ async def list_providers(current_user: dict = Depends(get_current_user)):
 
 @router.get("/devices")
 async def list_devices(provider: str | None = None, current_user: dict = Depends(get_current_user)):
-    adapters = [get_adapter(provider)] if provider else list(PROVIDER_REGISTRY.values())
+    adapters = [a for a in ([get_adapter(provider)] if provider else PROVIDER_REGISTRY.values())
+                if a.is_configured()]
 
-    all_devices = []
-    to_fetch = []
     now = time.monotonic()
+    pending = []
     for adapter in adapters:
-        if not adapter.is_configured():
-            continue
-
         cached = _device_cache.get(adapter.provider_id)
         if cached is not None and (now - cached["fetched_at"]) < _DEVICE_CACHE_TTL_SECONDS:
-            all_devices.extend(cached["data"])
-        else:
-            to_fetch.append(adapter)
+            continue
+        task = _refresh_devices(adapter)
+        # Only worth blocking on providers we have nothing at all to show for.
+        # A merely stale list serves immediately while it refreshes behind the
+        # request — a 10-minute-old device roster beats an empty panel.
+        if cached is None:
+            pending.append(task)
 
-    async def _fetch(adapter):
-        try:
-            # adapter.list_devices() is a blocking network call — offloaded
-            # to a thread (like _refresh_job_status/_is_simulator_device
-            # already are) so it doesn't stall the event loop, and every
-            # uncached provider is fetched concurrently rather than one
-            # after another, since each provider is an independent request.
-            devices = await asyncio.to_thread(adapter.list_devices)
-        except Exception as e:
-            # One misbehaving provider shouldn't blank out every other
-            # provider's devices in an aggregated list.
-            print(f"[qroute_router] skipping devices for {adapter.provider_id}: {e}", flush=True)
-            return
-        _device_cache[adapter.provider_id] = {"data": devices, "fetched_at": now}
-        all_devices.extend(devices)
+    if pending:
+        # asyncio.wait (not gather/wait_for) on purpose: it returns when the
+        # budget runs out WITHOUT cancelling the stragglers, which is what
+        # lets a slow provider finish into the cache for the next request.
+        await asyncio.wait(pending, timeout=_DEVICE_FETCH_BUDGET_SECONDS)
 
-    await asyncio.gather(*(_fetch(adapter) for adapter in to_fetch))
-
-    return all_devices
+    return [d for a in adapters for d in _device_cache.get(a.provider_id, {}).get("data", [])]
 
 
 @router.post("/jobs")

@@ -45,6 +45,17 @@ qbraid       # services/qbraid_service.py — submits circuits to real quantum
              # qbraid[...] extra (cirq/braket/etc pull in the same class of
              # heavy deps that caused the earlier torch/CUDA build OOM).
 
+# qbraid_core declares a bare `urllib3` but imports urllib3 2.x-only names
+# (urllib3.response.BaseHTTPResponse, added in 2.0). Nothing here actually
+# needs urllib3 1.x — the <2 pins in the tree are all optional extras
+# (transformers[dev], huggingface_hub[all]) that never get installed — but the
+# deploy resolver still picked a 1.x wheel, and every QRoute request died with
+# "ImportError: cannot import name 'BaseHTTPResponse'" in production while
+# local (urllib3 2.7) worked fine. Floor it explicitly: 2.4 is what
+# qiskit-ibm-runtime and ibm-cloud-sdk-core already require anyway, so a real
+# conflict now fails the build loudly instead of shipping a broken qBraid.
+urllib3>=2.4
+
 # services/quantum_providers/ — QRoute multi-provider adapters (PLANS/qroute.md).
 # Each verified individually with real credentials before adding here — see
 # the plan's §3.3 note on why that matters on this specific host.

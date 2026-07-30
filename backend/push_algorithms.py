@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGODB_URI = 'mongodb+srv://qrious-user:ybMA0PdURZDVHM99@qrious-cluster.y1th5lk.mongodb.net/?appName=qrious-cluster/qrious-db'
+MONGODB_URI = os.getenv("MONGODB_URI")
+if not MONGODB_URI:
+    raise ValueError("MONGODB_URI environment variable is not set")
 
 def main():
     with open('parsed_algorithms.json', 'r', encoding='utf-8') as f:

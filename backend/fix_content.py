@@ -2,8 +2,13 @@ import json
 import re
 from pymongo import MongoClient
 import os
+from dotenv import load_dotenv
 
-MONGODB_URI = 'mongodb+srv://qrious-user:ybMA0PdURZDVHM99@qrious-cluster.y1th5lk.mongodb.net/?appName=qrious-cluster/qrious-db'
+load_dotenv()
+
+MONGODB_URI = os.getenv("MONGODB_URI")
+if not MONGODB_URI:
+    raise ValueError("MONGODB_URI environment variable is not set")
 
 def fix_circuits_heuristically(data):
     for alg in data:

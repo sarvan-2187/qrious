@@ -20,6 +20,7 @@ qiskit
 qiskit-aer
 qbraid       # services/qbraid_service.py — real hardware/simulator execution.
              # Base package ONLY, no extras — see requirements.txt's comment.
+urllib3>=2.4 # qbraid_core imports urllib3 2.x-only names — see requirements.txt.
 
 # qBook (routers/qbook_router.py) — signs session tokens, writes .ipynb/PDF exports
 pyjwt

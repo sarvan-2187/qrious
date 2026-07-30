@@ -2,6 +2,7 @@ import os
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import asyncio
+import traceback
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -19,6 +20,7 @@ from services.roadmap_seed import seed_roadmap_topics
 from services.flashcard_seed import seed_flashcards
 from services.badge_engine import badge_engine
 from services.qroute_notifier import poll_and_notify_jobs
+from routers.qroute_router import warm_device_cache
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +43,10 @@ async def lifespan(app: FastAPI):
     # Run initial news fetch in background task immediately (non-blocking)
     try:
         asyncio.create_task(sync_all_news())
+        # Same treatment for QRoute's provider device lists: cold SDK imports +
+        # per-provider network calls are far too slow to run inside the first
+        # user's request (see qroute_router._DEVICE_FETCH_BUDGET_SECONDS).
+        asyncio.create_task(warm_device_cache())
     except Exception as e:
         print(f"[Lifespan News Warning] Non-critical news task deferred: {e}")
 
@@ -134,8 +140,23 @@ async def add_cors_headers(request, call_next):
         from fastapi.responses import Response
         response = Response(status_code=200)
     else:
-        response = await call_next(request)
-    
+        try:
+            response = await call_next(request)
+        except Exception:
+            # An unhandled exception would otherwise propagate past this
+            # middleware to Starlette's outermost error handler, which builds
+            # its 500 WITHOUT the CORS headers added below — so the browser
+            # discards the response and the frontend sees an unexplained
+            # "Network Error" instead of the failure. Turning it into a real
+            # response here keeps every error explainable in the UI. (This is
+            # what hid a qBraid SDK ImportError behind a blank QRoute panel.)
+            traceback.print_exc()
+            response = JSONResponse(
+                status_code=500,
+                content={"detail": "Internal server error. Check the backend logs for the traceback."},
+            )
+
+
     if origin:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"

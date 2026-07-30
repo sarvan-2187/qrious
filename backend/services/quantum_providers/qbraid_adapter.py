@@ -21,7 +21,13 @@ class QbraidAdapter(QuantumProviderAdapter):
         try:
             qbraid_service.provider
             return True
-        except ValueError:
+        except Exception as e:
+            # Not just the missing-key ValueError: touching .provider imports
+            # the qBraid SDK, and an import that blows up (a bad transitive
+            # version on the deploy host, say) must degrade this ONE provider
+            # to "not configured" — it used to escape and 500 the entire
+            # /providers and /devices response for every other provider too.
+            print(f"[qbraid_adapter] treating qBraid as not configured: {e}", flush=True)
             return False
 
     def list_devices(self) -> list[DeviceInfo]:
