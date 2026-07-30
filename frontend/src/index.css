@@ -237,4 +237,31 @@ body {
   background: var(--color-muted-foreground);
 }
 
+/* ─── Pomodoro DND Mode ──────────────────────────────────────────────────────
+   When .pomodoro-dnd-active is set on <html> (by PomodoroContext while a work
+   session is running), Sonner toasts are hidden and the main content receives
+   a subtle focus-indicator overlay. Everything reverts automatically when the
+   class is removed (session paused / completed).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Hide Sonner toast container during DND */
+html.pomodoro-dnd-active [data-sonner-toaster] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.4s ease;
+}
+
+/* Faint violet vignette on the top header to signal focus mode */
+html.pomodoro-dnd-active header {
+  box-shadow: inset 0 -1px 0 rgba(168, 85, 247, 0.25) !important;
+  border-bottom-color: rgba(168, 85, 247, 0.2) !important;
+  transition: box-shadow 0.4s ease, border-bottom-color 0.4s ease;
+}
+
+/* Dim the sidebar slightly during focus */
+html.pomodoro-dnd-active [data-sidebar="sidebar"] {
+  opacity: 0.6;
+  transition: opacity 0.4s ease;
+}
+
 /* End of index.css */

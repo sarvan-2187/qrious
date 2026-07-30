@@ -10,6 +10,8 @@ import type { XpSummary, StreakStatus } from '@/features/gamification/types/gami
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { DailyXpModal } from '@/features/gamification/components/DailyXpModal';
+import { PomodoroFAB } from '@/features/focus/components/PomodoroFAB';
+import { usePomodoro } from '@/features/focus/hooks/usePomodoro';
 
 export default function AppLayout() {
 
@@ -21,6 +23,8 @@ export default function AppLayout() {
   const [xpSummary, setXpSummary] = useState<XpSummary | null>(null);
   const [streakStatus, setStreakStatus] = useState<StreakStatus | null>(null);
   const [isXpModalOpen, setIsXpModalOpen] = useState(false);
+  const { state: pomodoroState } = usePomodoro();
+  const isDndActive = pomodoroState.isDndActive;
 
   useEffect(() => {
     async function fetchUserData() {
@@ -275,9 +279,12 @@ export default function AppLayout() {
             )}>Qrious Quantum Platform</span>
           </div>
 
-          {/* Gamification Status Badges (Learners Only) */}
+          {/* Gamification Status Badges (Learners Only) — hidden during DND */}
           {!isEducator && (
-            <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono">
+            <div className={cn(
+              "flex items-center gap-2 sm:gap-3 text-xs font-mono transition-opacity duration-500",
+              isDndActive ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}>
               {xpSummary && (
                 <div
                   onClick={() => setIsXpModalOpen(true)}
@@ -331,11 +338,14 @@ export default function AppLayout() {
         </main>
 
         {!isEducator && (
-          <DailyXpModal
-            isOpen={isXpModalOpen}
-            onClose={() => setIsXpModalOpen(false)}
-            xpSummary={xpSummary}
-          />
+          <>
+            <DailyXpModal
+              isOpen={isXpModalOpen}
+              onClose={() => setIsXpModalOpen(false)}
+              xpSummary={xpSummary}
+            />
+            <PomodoroFAB />
+          </>
         )}
       </SidebarInset>
     </SidebarProvider>
