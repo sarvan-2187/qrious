@@ -12,6 +12,7 @@ from auth import get_current_user
 from database import get_db
 from routers.video_overview_router import QSTUDIO_SERVICE_SECRET, QSTUDIO_SERVICE_URL
 from services import qcompare_service
+from services.qiskit_service import ensure_measurements
 from services.quantum_providers import InsufficientCreditsError, PROVIDER_REGISTRY, get_adapter
 
 router = APIRouter(prefix="/api/v1/qroute", tags=["QRoute — Multi-Provider Quantum Jobs"])
@@ -174,7 +175,12 @@ async def submit_job(request: QasmJobRequest, current_user: dict = Depends(get_c
         )
 
     try:
-        provider_job_id = adapter.submit_job(request.qasm, request.device_id, request.shots)
+        qasm = ensure_measurements(request.qasm)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse this circuit's OpenQASM: {e}")
+
+    try:
+        provider_job_id = adapter.submit_job(qasm, request.device_id, request.shots)
     except InsufficientCreditsError as e:
         raise HTTPException(status_code=402, detail=str(e))
     except Exception as e:
@@ -186,7 +192,8 @@ async def submit_job(request: QasmJobRequest, current_user: dict = Depends(get_c
         "provider": request.provider,
         "device_id": request.device_id,
         "shots": request.shots,
-        "qasm": request.qasm,
+        "qasm": qasm,  # normalized, i.e. exactly what the provider ran — qCompare
+                       # reconstructs the circuit from this field.
         "qbraid_job_qrn": provider_job_id,  # field name kept from the qbraid-only schema —
         "status": "queued",                  # it's a generic "provider job id" slot now, and
         "result": None,                       # renaming it would be a migration for zero benefit.

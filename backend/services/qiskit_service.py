@@ -321,11 +321,14 @@ class QiskitService:
         but build_qiskit_circuit's MEASURE dispatch is a deliberate no-op
         (those two endpoints each manage measurement themselves), so real
         measure statements have to be added here, mirroring exactly what
-        qasmParser.ts's gatesToQasm does: an explicit measure per MEASURE
-        gate if the user placed any, otherwise measure every qubit to its
-        same-index classical bit. Without this, the exported QASM has no
-        measurements at all and running it raises Qiskit's
-        "No counts for experiment" error."""
+        qasmParser.ts's gatesToQasm does: one measure per MEASURE gate the
+        user placed, and none if they placed none.
+
+        A circuit with no MEASURE gates therefore exports with no measurements
+        — fine for /simulate (run_simulation samples counts off the statevector
+        regardless) but rejected outright by real hardware. Submitting to a
+        provider goes through ensure_measurements() below, which fills them in;
+        this export deliberately stays a faithful rendering of the canvas."""
         num_cbits = num_cbits if num_cbits is not None else num_qubits
         qc = self.build_qiskit_circuit(gates, num_qubits, num_cbits)
 
@@ -602,6 +605,37 @@ if _qc_var is not None:
             steps.append(extract_state(dm, i + 1, gate))
 
         return steps
+
+
+def ensure_measurements(qasm: str) -> str:
+    """Returns `qasm` with measurements added if it has none, unchanged otherwise.
+
+    Real hardware requires them: IBM rejects a measurement-free circuit outright
+    ("Error code 1515; Circuits without measurements are not allowed"), and the
+    other providers accept the job only to return empty counts. But BOTH QASM
+    writers — qasmParser.ts's gatesToQasm and circuit_to_qasm2 above — only emit
+    `measure` for MEASURE gates the user explicitly dropped on the canvas, so an
+    ordinary H+CNOT circuit reaches the provider with nothing measured. Measuring
+    every qubit is what "run this circuit" means, and it's what the results view
+    already assumes, so it's applied at submission rather than making every user
+    discover the M gate.
+
+    Callers submit the returned QASM AND store it, so the saved circuit is what
+    actually ran (qCompare reconstructs the job from that field)."""
+    qc = qiskit.qasm2.loads(qasm)
+    if any(instruction.operation.name == "measure" for instruction in qc.data):
+        return qasm
+
+    if qc.num_clbits >= qc.num_qubits:
+        # Same qubit i -> classical bit i convention gatesToQasm uses for an
+        # explicit MEASURE gate, reusing the cregs the circuit already declares.
+        qc.measure(range(qc.num_qubits), range(qc.num_qubits))
+    else:
+        # Too few classical bits to land every qubit — measure_all() adds its own
+        # register. Providers read the counts off whichever creg exists (see
+        # ibm_adapter's "first classical register" note), so the name is free.
+        qc.measure_all()
+    return qiskit.qasm2.dumps(qc)
 
 
 qiskit_service = QiskitService()
