@@ -70,3 +70,75 @@ export interface TopicCompleteResponse {
   meta: any | null;
   error: { code: string; message: string } | null;
 }
+export interface DomainConfig {
+  id: string;
+  name: string;
+  description: string;
+  iconName: string;
+  isLocked: boolean;
+  requiredXp: number;
+  requiredPretestScore?: number;
+  prerequisiteDomainId?: string;
+  prerequisiteDomainName?: string;
+}
+
+export const AVAILABLE_DOMAINS: DomainConfig[] = [
+  {
+    id: 'quantum-maths',
+    name: 'Quantum Mathematics & Linear Algebra',
+    description: 'Complex vector spaces, Dirac notation, Hilbert spaces, operators & tensor algebra.',
+    iconName: 'Atom',
+    isLocked: false,
+    requiredXp: 0,
+  },
+  {
+    id: 'quantum-physics',
+    name: 'Quantum Physics & Wave Mechanics',
+    description: 'Wave-particle duality, Schrödinger equation, Heisenberg uncertainty & spin-1/2.',
+    iconName: 'Atom',
+    isLocked: false,
+    requiredXp: 0,
+  },
+  {
+    id: 'quantum-computing',
+    name: 'Quantum Computing & Algorithms',
+    description: 'Qubits, quantum circuits, Grover, Shor & Variational algorithms.',
+    iconName: 'Cpu',
+    isLocked: false,
+    requiredXp: 100,
+    prerequisiteDomainId: 'quantum-maths',
+    prerequisiteDomainName: 'Quantum Mathematics'
+  },
+  {
+    id: 'quantum-communication',
+    name: 'Quantum Communication & QKD',
+    description: 'Bell States, Quantum Teleportation, BB84 QKD & Quantum Repeaters.',
+    iconName: 'Shield',
+    isLocked: false,
+    requiredXp: 150,
+    prerequisiteDomainId: 'quantum-physics',
+    prerequisiteDomainName: 'Quantum Physics'
+  },
+  {
+    id: 'quantum-machine-learning',
+    name: 'Quantum Machine Learning',
+    description: 'VQE, Quantum Neural Networks (QNN), QSVC & Quantum Born Machines.',
+    iconName: 'Brain',
+    isLocked: true,
+    requiredXp: 300,
+    requiredPretestScore: 75,
+    prerequisiteDomainId: 'quantum-computing',
+    prerequisiteDomainName: 'Quantum Computing'
+  },
+  {
+    id: 'quantum-hardware',
+    name: 'Quantum Hardware & Fault Tolerance',
+    description: 'Transmon qubits, pulse shaping, Gottesman-Knill & 2D surface codes.',
+    iconName: 'Layers',
+    isLocked: true,
+    requiredXp: 500,
+    requiredPretestScore: 80,
+    prerequisiteDomainId: 'quantum-computing',
+    prerequisiteDomainName: 'Quantum Computing'
+  }
+];

@@ -43,10 +43,26 @@ export const useBuildState = () => {
     }));
   };
 
+  const resetBuild = () => {
+    setBuildGraph((prev) => ({
+      ...prev,
+      placedComponents: [],
+    }));
+  };
+
+  const undo = () => {
+    setBuildGraph((prev) => ({
+      ...prev,
+      placedComponents: prev.placedComponents.slice(0, -1),
+    }));
+  };
+
   return {
     buildGraph,
     placeComponent,
     removeComponent,
+    resetBuild,
+    undo,
     setHardware,
   };
 };
