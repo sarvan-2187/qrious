@@ -1055,7 +1055,7 @@ def rank_devices(
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd backend && pytest tests/test_resource_optimizer.py -v`
-Expected: PASS, 21 passed
+Expected: PASS, 20 passed
 
 - [ ] **Step 5: Commit**
 
