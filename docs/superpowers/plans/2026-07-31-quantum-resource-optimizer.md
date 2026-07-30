@@ -18,7 +18,12 @@
 - **Every error rate must carry `source`, `source_url` and `published_date`.** Scientific-accuracy requirement, not a nicety. `published_date` is the date the *cited numbers* were published — bumping it without re-reading the provider's page is falsifying a citation.
 - **Fidelity is always labelled an upper bound**, never presented as a prediction. The model ignores T1/T2, circuit duration, crosstalk, idle decay and SPAM beyond a flat readout term. Every UI surface showing it must say so (`≤ 94.3%`, "upper bound", confidence chip).
 - **No invented uncertainty.** Do not display `±x%` derived from anything but measured calibration data — published error rates carry no uncertainties to propagate. Qualitative confidence comes from calibration age; the numeric error bar comes from `GET /calibration`'s measured MAE.
-- **Existing tests must keep passing.** Run `pytest` from `backend/` before every commit.
+- **No NEW test failures.** Run the suite from `backend/` with `./venv/Scripts/python.exe -m pytest -q` before every commit. **6 tests already fail on a clean tree** and are NOT your concern — do not try to fix them:
+  - `tests/test_ai_gateway.py::test_code_task_routes_to_kimi_first`
+  - `tests/test_domain_guard.py::{test_domain_guard_allow_contextual, test_domain_guard_allow_quantum, test_domain_guard_mixed, test_domain_guard_reject_unrelated}` (all four: `pytest-asyncio` is not installed, so `async def` tests are skipped as failures)
+  - `tests/test_phase6_analytics.py::test_weak_concept_calculation_and_sorting`
+
+  Baseline is **6 failed, 44 passed**. Success means the failure list is unchanged and the pass count has grown by exactly your new tests.
 - **Test style:** plain `pytest` functions, no fixtures, no frameworks beyond `pytest` and `unittest.mock`. Match `backend/tests/test_device_fetch_budget.py`.
 - **Frontend conventions:** icons come from `react-icons/fa` (v5 names — `FaExclamationTriangle`, *not* the fa6 `FaTriangleExclamation`); shared UI imports use the `@/` alias (`@/components/ui/card`), module-local imports stay relative (`../hooks/useQRouteApi`). See `QRoutePage.tsx:13-17`.
 - **Do not modify** `DeviceInfo`'s five existing required keys, or any adapter's `submit_job` / `get_job_result` signature. Four adapters depend on them.
