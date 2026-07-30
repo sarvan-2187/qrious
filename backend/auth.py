@@ -19,21 +19,44 @@ def init_firebase():
         cred_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
         cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH")
 
+        source = None
         if cred_json:
             source = credentials.Certificate(json.loads(cred_json))
         elif cred_path:
-            source = credentials.Certificate(cred_path)
-        else:
-            raise RuntimeError(
-                "Set FIREBASE_SERVICE_ACCOUNT_JSON (the key file's full contents) "
-                "or FIREBASE_SERVICE_ACCOUNT_PATH (a path to it)"
-            )
+            # Search candidate paths (CWD, backend dir, root workspace, frontend dir)
+            root_dir = os.path.dirname(os.path.dirname(__file__))
+            candidate_paths = [
+                cred_path,
+                os.path.abspath(cred_path),
+                os.path.join(os.path.dirname(__file__), cred_path),
+                os.path.join(root_dir, cred_path),
+                os.path.join(root_dir, "frontend", cred_path)
+            ]
+            
+            resolved_path = None
+            for p in candidate_paths:
+                if os.path.exists(p):
+                    resolved_path = p
+                    break
+
+            if resolved_path:
+                print(f"[FirebaseInit] Successfully found Firebase service account key at: {resolved_path}")
+                source = credentials.Certificate(resolved_path)
+            else:
+                print(
+                    f"Warning: FIREBASE_SERVICE_ACCOUNT_PATH file '{cred_path}' not found on disk. "
+                    "Falling back to default Firebase App initialization."
+                )
 
         try:
-            firebase_admin.initialize_app(source)
+            if source:
+                firebase_admin.initialize_app(source)
+            else:
+                firebase_admin.initialize_app()
         except Exception as e:
             print(f"Error initializing Firebase Admin SDK: {e}")
-            raise e
+            if not firebase_admin._apps:
+                print("Firebase Admin SDK failed to initialize.")
 
 init_firebase()
 

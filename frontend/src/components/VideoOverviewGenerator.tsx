@@ -216,27 +216,28 @@ function VideoOverviewGeneratorInner({ lessonId, pdfResources = [], onGenerated 
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Slide template</Label>
+                  <div className="space-y-2 min-w-0">
+                    <Label className="text-sm font-medium">Slide template</Label>
                     <Select value={template} onValueChange={(v) => setTemplate(v as VideoTemplate)}>
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="w-full truncate">
+                        <SelectValue placeholder="Select template" />
                       </SelectTrigger>
                       <SelectContent>
                         {TEMPLATE_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label} &mdash; {opt.description}
+                            <span className="font-medium">{opt.label}</span>
+                            <span className="text-xs text-muted-foreground ml-1 font-normal">&mdash; {opt.description}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Narrator voice</Label>
+                  <div className="space-y-2 min-w-0">
+                    <Label className="text-sm font-medium">Narrator voice</Label>
                     <Select value={voice} onValueChange={(v) => setVoice(v as VoiceGender)}>
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="w-full truncate">
+                        <SelectValue placeholder="Select voice" />
                       </SelectTrigger>
                       <SelectContent>
                         {VOICE_OPTIONS.map((opt) => (

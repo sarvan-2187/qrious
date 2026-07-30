@@ -7,6 +7,25 @@ interface VideoResourcePlayerProps {
   fetchUrl?: (id: string) => Promise<{ download_url: string }>;
 }
 
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    if (url.includes('youtube.com/watch')) {
+      const parsed = new URL(url);
+      const v = parsed.searchParams.get('v');
+      if (v) return `https://www.youtube-nocookie.com/embed/${v}?autoplay=1&rel=0`;
+    }
+    if (url.includes('youtu.be/')) {
+      const parts = url.split('youtu.be/');
+      const id = parts[1]?.split('?')[0];
+      if (id) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+    }
+    if (url.includes('youtube.com/embed/')) {
+      return url;
+    }
+  } catch (e) {}
+  return null;
+}
+
 export function VideoResourcePlayer({ resourceId, title, fetchUrl = getDownloadUrl }: VideoResourcePlayerProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [retried, setRetried] = useState(false);
@@ -24,7 +43,7 @@ export function VideoResourcePlayer({ resourceId, title, fetchUrl = getDownloadU
         console.error("Failed to fetch initial video URL:", err);
         setFatalError(true);
       });
-  }, [resourceId]);
+  }, [resourceId, fetchUrl]);
 
   async function handleError() {
     if (!retried) {
@@ -68,6 +87,22 @@ export function VideoResourcePlayer({ resourceId, title, fetchUrl = getDownloadU
       <div className="w-full h-full bg-black/90 flex flex-col items-center justify-center rounded-xl">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         <p className="text-white/70 mt-4 animate-pulse">Loading video...</p>
+      </div>
+    );
+  }
+
+  const ytEmbed = getYouTubeEmbedUrl(src);
+
+  if (ytEmbed) {
+    return (
+      <div className="w-full h-full bg-black flex items-center justify-center rounded-xl overflow-hidden shadow-lg relative min-h-[450px]">
+        <iframe
+          src={ytEmbed}
+          title={title}
+          className="w-full h-full border-0 min-h-[450px]"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
       </div>
     );
   }

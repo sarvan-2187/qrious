@@ -69,4 +69,5 @@ pnpm-debug.log*
 !.env.example
 backend/chroma_db/
 # Firebase service-account keys — never commit
-backend/qrious-cats-firebase-adminsdk-fbsvc-c3a8ae0683.json 
+*firebase-adminsdk*.json
+backend/check_courses.py 

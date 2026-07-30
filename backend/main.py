@@ -18,6 +18,7 @@ from services.arxiv_fetcher import sync_all_news
 from services.quiz_seed import seed_quiz_questions
 from services.roadmap_seed import seed_roadmap_topics
 from services.flashcard_seed import seed_flashcards
+from services.course_seed import seed_domain_courses
 from services.badge_engine import badge_engine
 from services.qroute_notifier import poll_and_notify_jobs
 from routers.qroute_router import warm_device_cache
@@ -31,6 +32,7 @@ async def lifespan(app: FastAPI):
         await seed_roadmap_topics(get_db())
         await seed_quiz_questions(get_db())
         await seed_flashcards(get_db())
+        await seed_domain_courses(get_db())
         await badge_engine.seed_badges(get_db())
     except Exception as e:
         print(f"[Lifespan Startup Warning] MongoDB initialization/seeding deferred due to network connectivity: {e}")

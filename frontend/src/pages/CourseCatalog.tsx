@@ -1,13 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '../context/AuthContext';
 import { listPublishedCourses, listEnrolledCourses, getCourseProgress, listEducatorCourses } from '../api/courses';
 import { CertificateGenerator } from '../components/CertificateGenerator';
 import type { Course } from '../api/courses';
+import { DEMO_COURSES } from '@/data/demoDomainCourses';
+
+const DOMAIN_CATEGORIES = [
+  { id: 'All', label: 'All Domains' },
+  { id: 'CS', label: 'Computer Science' },
+  { id: 'Civil', label: 'Civil & Structural' },
+  { id: 'Mechanical', label: 'Mechanical & Fluid' },
+  { id: 'Electrical', label: 'Electrical & Control' },
+  { id: 'Hardware', label: 'Hardware Fundamentals' },
+];
 
 export default function CourseCatalog() {
   const { currentUser } = useAuth();
@@ -17,6 +28,7 @@ export default function CourseCatalog() {
   const [myTeachings, setMyTeachings] = useState<Course[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -69,18 +81,143 @@ export default function CourseCatalog() {
     if (currentUser) fetchCourses();
   }, [currentUser]);
 
+  const filteredPublishedCourses = useMemo(() => {
+    if (selectedCategory === 'All') return courses;
+    return courses.filter(c => c.category === selectedCategory);
+  }, [courses, selectedCategory]);
+
+  const filteredDemoCourses = useMemo(() => {
+    const publishedTitles = new Set(courses.map(c => c.title.toLowerCase().trim()));
+    const remainingDemos = DEMO_COURSES.filter(d => !publishedTitles.has(d.title.toLowerCase().trim()));
+    if (selectedCategory === 'All') return remainingDemos;
+    return remainingDemos.filter(c => c.category === selectedCategory);
+  }, [courses, selectedCategory]);
+
   return (
     <div className="p-6 md:p-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Course Catalog</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Course Catalog</h1>
+          <p className="text-muted-foreground text-sm mt-1">Explore foundational quantum computing & domain-specific engineering applications.</p>
+        </div>
+      </div>
       
-      <Tabs defaultValue="enrolled" className="w-full">
+      <Tabs defaultValue="all" className="w-full">
         <TabsList className={`mb-6 flex w-full max-w-3xl justify-start sm:grid overflow-x-auto h-auto sm:h-10 p-1 ${userRole === 'educator' ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
-          <TabsTrigger value="enrolled">My Enrolled Courses</TabsTrigger>
           <TabsTrigger value="all">All Courses</TabsTrigger>
+          <TabsTrigger value="enrolled">My Enrolled Courses</TabsTrigger>
           <TabsTrigger value="certificates">My Certificates</TabsTrigger>
           {userRole === 'educator' && <TabsTrigger value="teachings">My Teachings</TabsTrigger>}
         </TabsList>
         
+        <TabsContent value="all" className="mt-0 space-y-6">
+          {/* Domain Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">Discipline:</span>
+            {DOMAIN_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer border whitespace-nowrap ${
+                  selectedCategory === cat.id
+                    ? 'bg-purple-600/20 text-purple-300 border-purple-500/50 shadow-sm shadow-purple-500/20'
+                    : 'bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="hover:shadow-lg transition-shadow border-border/50">
+                  <CardHeader><Skeleton className="h-6 w-3/4 mb-2" /></CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-5/6 mb-2" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {/* Render Backend Published Courses */}
+              {filteredPublishedCourses.map(c => (
+                <Card key={c.id} className="hover:shadow-lg transition-all border-purple-500/30 bg-card/80 backdrop-blur hover:border-purple-500/60 group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="secondary" className="text-xs bg-purple-500/10 text-purple-300 border-purple-500/30">
+                        {c.category ? `${c.category} Engineering` : 'Quantum Course'}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        {c.level || 'Interactive'}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-lg group-hover:text-purple-300 transition-colors">
+                      <Link to={`/courses/${c.id}`} className="hover:underline">{c.title}</Link>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">{c.description}</p>
+                    {c.tags && c.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {c.tags.map((tag) => (
+                          <span key={tag} className="text-[10px] px-2 py-0.5 rounded bg-muted/60 text-muted-foreground">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/40">
+                      <span>⏱️ {c.duration || 'Self-Paced'}</span>
+                      <Link to={`/courses/${c.id}`} className="font-semibold text-purple-400 group-hover:translate-x-1 transition-transform inline-flex items-center">
+                        Explore Course <span className="ml-1">→</span>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Render Domain Demo Courses (Fallback if not yet seeded in backend) */}
+              {filteredDemoCourses.map(c => (
+                <Card key={c.id} className="hover:shadow-lg transition-all border-purple-500/20 bg-card/70 backdrop-blur hover:border-purple-500/50 group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="secondary" className="text-xs bg-purple-500/10 text-purple-300 border-purple-500/30">
+                        {c.category} Engineering
+                      </Badge>
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        {c.level}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-lg group-hover:text-purple-300 transition-colors">
+                      {c.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">{c.description}</p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {c.tags.map((tag) => (
+                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded bg-muted/60 text-muted-foreground">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/40">
+                      <span>⏱️ {c.duration}</span>
+                      <span className="font-semibold text-purple-400 group-hover:translate-x-1 transition-transform inline-flex items-center">
+                        Explore Demo <span className="ml-1">→</span>
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="enrolled" className="mt-0 space-y-4">
           {loading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -113,41 +250,6 @@ export default function CourseCatalog() {
                     <div className="mt-4 flex items-center text-primary text-sm font-semibold">
                       Continue Learning <span className="ml-2">→</span>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="all" className="mt-0 space-y-4">
-          {loading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i} className="hover:shadow-lg transition-shadow border-border/50">
-                  <CardHeader><Skeleton className="h-6 w-3/4 mb-2" /></CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-5/6 mb-2" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : courses.length === 0 ? (
-            <div className="text-center py-20 bg-muted/20 rounded-lg border border-dashed border-border">
-              <p className="text-muted-foreground">No published courses available right now.</p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {courses.map(c => (
-                <Card key={c.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle>
-                      <Link to={`/courses/${c.id}`} className="text-foreground hover:text-primary transition-colors">{c.title}</Link>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground line-clamp-3">{c.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -239,3 +341,4 @@ export default function CourseCatalog() {
     </div>
   );
 }
+

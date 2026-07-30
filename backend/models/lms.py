@@ -89,6 +89,10 @@ class CourseOut(MongoBaseModel):
     owner_uid: str
     status: str
     format: str = "recorded"
+    category: Optional[str] = None
+    level: Optional[str] = None
+    duration: Optional[str] = None
+    tags: Optional[List[str]] = []
     created_at: datetime
     updated_at: datetime
 
