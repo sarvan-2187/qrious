@@ -1,0 +1,45 @@
+# Fully self-contained — this service is an independent deployable, not built from
+# the backend/ tree. No `-r` includes to sibling files outside this folder (learned
+# the hard way: FastAPI Cloud's build couldn't resolve a `-r` pointing outside its
+# staged file, and the exact same class of problem would hit here if this ever
+# referenced ../requirements-common.txt with a Docker build context scoped to this
+# folder). Keep in sync by hand with the actual imports in database.py,
+# storage_service.py, services/groq_service.py, main.py, and pipeline.py.
+
+motor            # async MongoDB client (database.py)
+python-dotenv    # loads .env (database.py, storage_service.py, ai/config.py)
+certifi          # TLS CA bundle for the MongoDB Atlas connection (database.py)
+boto3            # B2/S3 client (storage_service.py)
+
+# ai/ — Multi-AI Gateway (backend/docs/AI_GATEWAY.md; this is the same
+# provider-agnostic package, copied as-is — see ai/ package's own docstrings).
+# Replaces the old direct langchain-groq dependency; every pipeline below now
+# calls ai_gateway.chat(...) instead of importing Groq directly.
+openai
+
+# main.py is its own small FastAPI app (POST /internal/video-overview), run via
+# `uvicorn main:app` — bare fastapi + uvicorn, not fastapi[standard] (that extra
+# pulls in CLI tooling, websockets, python-multipart, etc. this service never uses;
+# uvicorn[standard] alone covers the perf extras — uvloop, httptools — worth having).
+fastapi
+uvicorn[standard]
+
+edge-tts      # per-slide narration audio (Microsoft Edge neural TTS, free, no API
+              # key; used over gTTS specifically for real male/female voice choice)
+playwright    # HTML slide -> PNG screenshot (headless Chromium; `playwright install
+              # --with-deps chromium` also required in the Dockerfile)
+pypdf         # optional source-PDF text extraction for grounding (MIT-licensed,
+              # chosen over PyMuPDF/fitz which is AGPL)
+jinja2        # renders the slide HTML template before the Playwright screenshot
+
+manim         # pipeline_manim.py / manim_scenes.py — Animation Overview rendering
+              # (PLANS/qstudio-animation.md). No LaTeX/texlive — every block uses
+              # Manim's Pango-backed Text only (§5/§6 of that plan). Installed and
+              # render-verified locally against real Manim CE 0.20.1 wheels on
+              # Windows (all 7 block builders); whether manimpango/pycairo resolve
+              # to prebuilt wheels on this Dockerfile's python:3.11-slim/linux-amd64
+              # base, or need the `-dev` apt packages the Dockerfile comments below
+              # (still) genuinely have not been verified — see PLANS/qstudio-
+              # animation.md §8 Q6.
+
+# ffmpeg is a system binary, not a pip package — installed via apt in the Dockerfile.

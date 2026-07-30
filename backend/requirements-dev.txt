@@ -1,0 +1,6 @@
+# Local/CI test tooling only — never installed on either deployed image
+# (FastAPI Cloud uses requirements-api.txt, the render service uses
+# requirements-worker.txt). Install alongside requirements.txt to run tests:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest
+pytest

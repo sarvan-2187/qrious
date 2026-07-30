@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: "Geist Sans";
+    src: url("{{ font_base }}/geist-sans-latin-400-normal.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "Geist Sans";
+    src: url("{{ font_base }}/geist-sans-latin-600-normal.woff2") format("woff2");
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1920px;
+    background: #faf7f0;
+    color: #1c2333;
+    font-family: "Geist Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 96px 120px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: #faf7f0;
+  }
+  .slide.page-break { break-after: page; }
+
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 56px; }
+  .brand-dot { width: 14px; height: 14px; border-radius: 999px; background: #1c2333; }
+  .brand-text { font-size: 22px; font-weight: 600; letter-spacing: 0.08em; color: #5b6472; text-transform: uppercase; }
+
+  .content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+  .serif { font-family: Georgia, "Times New Roman", serif; }
+
+  /* --- bullets --- */
+  .title { font-family: Georgia, "Times New Roman", serif; font-size: 62px; font-weight: 400; line-height: 1.2; max-width: 1550px; margin-bottom: 16px; color: #10141f; }
+  .title-rule { width: 140px; height: 4px; background: #1c2333; margin-bottom: 40px; }
+  .card {
+    flex: 1; border: 1px solid #dcd5c4; border-radius: 16px; background: #ffffff;
+    padding: 64px 72px; display: flex; flex-direction: column; justify-content: center; gap: 36px;
+    box-shadow: 0 2px 24px rgba(28, 35, 51, 0.06);
+  }
+  .bullet { display: flex; align-items: flex-start; gap: 24px; font-size: 36px; line-height: 1.45; font-weight: 400; color: #232a3b; }
+  .bullet-marker { flex: none; width: 10px; height: 10px; margin-top: 16px; border-radius: 2px; background: #b08a3e; }
+
+  /* --- title --- */
+  .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 28px; }
+  .hero-title { font-family: Georgia, "Times New Roman", serif; font-size: 100px; font-weight: 400; line-height: 1.15; max-width: 1600px; color: #10141f; }
+  .hero-subtitle { font-size: 36px; font-weight: 400; color: #5b6472; max-width: 1200px; }
+
+  /* --- section --- */
+  .section-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; }
+  .section-rule { width: 120px; height: 3px; background: #b08a3e; }
+  .section-title { font-family: Georgia, "Times New Roman", serif; font-size: 78px; font-weight: 400; text-align: center; max-width: 1500px; color: #10141f; }
+
+  /* --- quote --- */
+  .quote-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 36px; }
+  .quote-mark { font-size: 200px; line-height: 1; color: rgba(28, 35, 51, 0.2); font-family: Georgia, serif; height: 130px; }
+  .quote-text { font-family: Georgia, "Times New Roman", serif; font-size: 52px; font-weight: 400; line-height: 1.4; max-width: 1550px; font-style: italic; color: #232a3b; }
+  .quote-attribution { font-size: 28px; color: #5b6472; text-align: right; margin-top: 8px; }
+
+  /* --- comparison --- */
+  .comparison { flex: 1; display: flex; gap: 0; }
+  .comparison-col { flex: 1; display: flex; flex-direction: column; gap: 26px; padding: 16px 56px; }
+  .comparison-divider { width: 1px; background: #dcd5c4; margin: 16px 0; }
+  .comparison-label { font-family: Georgia, "Times New Roman", serif; font-size: 32px; font-weight: 400; color: #b08a3e; margin-bottom: 8px; }
+  .comparison-point { font-size: 30px; line-height: 1.5; color: #232a3b; padding-left: 22px; position: relative; }
+  .comparison-point::before { content: "\2013"; position: absolute; left: 0; color: #8a8f9a; }
+
+  /* --- stat --- */
+  .stat-wrap { flex: 1; display: flex; flex-direction: column; gap: 52px; justify-content: center; }
+  .stat-title { font-family: Georgia, "Times New Roman", serif; font-size: 52px; font-weight: 400; color: #10141f; }
+  .stat-row { display: flex; gap: 44px; }
+  .stat-card {
+    flex: 1; border: 1px solid #dcd5c4; border-radius: 16px; background: #ffffff;
+    padding: 52px 36px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center;
+    box-shadow: 0 2px 24px rgba(28, 35, 51, 0.06);
+  }
+  .stat-value { font-family: Georgia, "Times New Roman", serif; font-size: 78px; font-weight: 400; color: #b08a3e; }
+  .stat-label { font-size: 26px; color: #5b6472; }
+
+  .footer {
+    position: absolute; bottom: 56px; left: 120px; right: 120px;
+    display: flex; justify-content: space-between; align-items: center;
+    color: #8a8f9a; font-size: 20px; letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+{% macro slide_content(s) %}
+  {% if s.layout == "title" %}
+    <div class="hero">
+      <div class="hero-title">{{ s.title }}</div>
+      {% if s.subtitle %}<div class="hero-subtitle">{{ s.subtitle }}</div>{% endif %}
+    </div>
+  {% elif s.layout == "section" %}
+    <div class="section-wrap">
+      <div class="section-rule"></div>
+      <div class="section-title">{{ s.title }}</div>
+    </div>
+  {% elif s.layout == "quote" %}
+    <div class="quote-wrap">
+      <div class="quote-mark">&ldquo;</div>
+      <div class="quote-text">{{ s.quote }}</div>
+      {% if s.attribution %}<div class="quote-attribution">&mdash; {{ s.attribution }}</div>{% endif %}
+    </div>
+  {% elif s.layout == "comparison" %}
+    <div class="title">{{ s.title }}</div>
+    <div class="title-rule"></div>
+    <div class="comparison">
+      <div class="comparison-col">
+        <div class="comparison-label">{{ s.left_label }}</div>
+        {% for point in s.left_points %}<div class="comparison-point">{{ point }}</div>{% endfor %}
+      </div>
+      <div class="comparison-divider"></div>
+      <div class="comparison-col">
+        <div class="comparison-label">{{ s.right_label }}</div>
+        {% for point in s.right_points %}<div class="comparison-point">{{ point }}</div>{% endfor %}
+      </div>
+    </div>
+  {% elif s.layout == "stat" %}
+    <div class="stat-wrap">
+      <div class="stat-title">{{ s.title }}</div>
+      <div class="stat-row">
+        {% for item in s.stats %}
+        <div class="stat-card">
+          <div class="stat-value">{{ item.value }}</div>
+          <div class="stat-label">{{ item.label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <div class="title">{{ s.title }}</div>
+    <div class="title-rule"></div>
+    <div class="card">
+      {% for bullet in s.bullets %}
+      <div class="bullet"><div class="bullet-marker"></div><div>{{ bullet }}</div></div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% if mode == "deck" %}
+  {% for s in slides %}
+  <div class="slide{% if not loop.last %} page-break{% endif %}">
+    <div class="brand"><div class="brand-dot"></div><div class="brand-text">Qrious &middot; Slides</div></div>
+    <div class="content">{{ slide_content(s) }}</div>
+    <div class="footer"><span>Generated deck</span><span>{{ loop.index }} / {{ slides|length }}</span></div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="slide">
+    <div class="brand"><div class="brand-dot"></div><div class="brand-text">Qrious &middot; Slides</div></div>
+    <div class="content">{{ slide_content(slide) }}</div>
+    <div class="footer"><span>Generated deck</span><span>{{ slide_number }} / {{ total_slides }}</span></div>
+  </div>
+{% endif %}
+</body>
+</html>

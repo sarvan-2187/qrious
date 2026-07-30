@@ -1,0 +1,46 @@
+# CPU-only PyTorch build — see requirements.txt's own comment for why (torch
+# comes in transitively via sentence-transformers, below). Mirrored here for
+# documentation only; requirements.txt is the file that actually ships.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Local-dev/documentation reference only — backend/requirements.txt (what FastAPI
+# Cloud and local `pip install -r requirements.txt` actually use) has this same
+# list inlined directly, since FastAPI Cloud's build can't resolve a `-r` include
+# to a sibling file. See requirements.txt's own comment for why. Keep both in sync
+# by hand if you add/remove a dependency here.
+-r requirements-common.txt
+
+# FastAPI Cloud API service only.
+fastapi[standard]
+firebase-admin       # auth.py — verifies the Bearer token on every request
+livekit-api          # live_service.py / routers/live.py — live session rooms + recording
+
+# Quantum simulation (gates playground, algorithm explorer)
+qiskit
+qiskit-aer
+qbraid       # services/qbraid_service.py — real hardware/simulator execution.
+             # Base package ONLY, no extras — see requirements.txt's comment.
+
+# qBook (routers/qbook_router.py) — signs session tokens, writes .ipynb/PDF exports
+pyjwt
+nbformat
+markdown     # services/qbook_pdf.py — renders markdown cells for the PDF export
+Pygments     # services/qbook_pdf.py — syntax-highlights code cells for the PDF export
+xhtml2pdf    # services/qbook_pdf.py — pure-Python HTML->PDF renderer for the PDF export
+
+# AI tutor RAG chat (services/langchain_service.py, chroma_service.py) AND
+# qStudio source-grounded Q&A (rag/, PLANS/qstudio-rag.md) — both share the
+# same embedding-model dependency footprint.
+langchain
+langchain-core       # services/langchain_service.py imports this directly (ChatPromptTemplate)
+langchain-chroma
+langchain-huggingface
+langchain-community
+chromadb
+sentence-transformers
+rank-bm25    # rag/lexical.py — qStudio Q&A's lexical/BM25 retriever, pure-Python
+
+# Quantum news sync (main.py's lifespan + services/arxiv_fetcher.py) — API-only,
+# confirmed via grep that nothing outside those two files imports either.
+apscheduler
+feedparser

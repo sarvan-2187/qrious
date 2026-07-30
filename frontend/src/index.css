@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+/* Tailwind v4's default `dark:` variant follows OS `prefers-color-scheme`,
+   not this app's in-app theme toggle. ThemeContext.tsx sets `data-theme` on
+   <html> (see the :root / [data-theme="dark"] blocks below) — this makes
+   every `dark:` utility class key off that attribute instead, so the toggle
+   in Settings actually controls them. */
+@custom-variant dark (&:is([data-theme="dark"], [data-theme="dark"] *));
+
+@import '@fontsource/geist-sans/400.css';
+@import '@fontsource/geist-sans/500.css';
+@import '@fontsource/geist-sans/600.css';
+@import '@fontsource/geist-sans/800.css';
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import 'katex/dist/katex.min.css';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@plugin 'tailwindcss-animate';
+
+/* Ensure display math scrolls horizontally if it exceeds sidebar width */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
+@theme {
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: 'Instrument Serif', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Geist Sans', sans-serif;
+
+  /* Quantum Playground Tokens — indirected through --qp-* below so they can
+     flip between the :root (light) and [data-theme="dark"] (dark) blocks,
+     the same pattern --background/--card/etc. already use. */
+  --color-qp-bg: var(--qp-bg);
+  --color-qp-secondary: var(--qp-secondary);
+  --color-qp-card: var(--qp-card);
+  --color-qp-border: var(--qp-border);
+  --color-qp-hover: var(--qp-hover);
+  --color-qp-text: var(--qp-text);
+  --color-qp-text-muted: var(--qp-text-muted);
+}
+
+:root {
+  /* Vanilla Custom Colors */
+  --bg-color: #ffffff; /* White */
+
+  /* Shadcn bd1kQKvo Preset Colors (Light Theme) */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.705 0.015 286.067);
+  --chart-1: oklch(0.871 0.006 286.286);
+  --chart-2: oklch(0.552 0.016 285.938);
+  --chart-3: oklch(0.442 0.017 285.786);
+  --chart-4: oklch(0.37 0.013 285.805);
+  --chart-5: oklch(0.274 0.006 286.033);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.588 0.158 241.966);
+  --sidebar-primary-foreground: oklch(0.977 0.013 236.62);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.705 0.015 286.067);
+  
+  --font-sans: 'Geist Sans', system-ui, sans-serif;
+  color-scheme: light;
+
+  /* Quantum Playground Tokens (Light Theme) */
+  --qp-bg: #f4f5f8;
+  --qp-secondary: rgba(244, 245, 248, 0.7);
+  --qp-card: rgba(255, 255, 255, 0.75);
+  --qp-border: rgba(0, 0, 0, 0.08);
+  --qp-hover: rgba(0, 0, 0, 0.04);
+  --qp-text: #18181b;
+  --qp-text-muted: #71717a;
+}
+
+.dark, [data-theme="dark"] {
+  /* Vanilla Custom Colors */
+  --bg-color: #000000;
+
+  /* Shadcn bd1kQKvo Preset Colors (Dark Theme) */
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: #34d399;
+  --primary-foreground: #09090b;
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.552 0.016 285.938);
+  --chart-1: oklch(0.871 0.006 286.286);
+  --chart-2: oklch(0.552 0.016 285.938);
+  --chart-3: oklch(0.442 0.017 285.786);
+  --chart-4: oklch(0.37 0.013 285.805);
+  --chart-5: oklch(0.274 0.006 286.033);
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.685 0.169 237.323);
+  --sidebar-primary-foreground: oklch(0.293 0.066 243.157);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.552 0.016 285.938);
+
+  color-scheme: dark;
+
+  /* Quantum Playground Tokens (Dark Theme — Pure Neutral Glassmorphism) */
+  --qp-bg: #000000;
+  --qp-secondary: rgba(20, 20, 20, 0.6);
+  --qp-card: rgba(12, 12, 12, 0.65);
+  --qp-border: rgba(255, 255, 255, 0.08);
+  --qp-hover: rgba(255, 255, 255, 0.08);
+  --qp-text: #F3F4F6;
+  --qp-text-muted: #9CA3AF;
+}
+
+.bg-qp-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.bg-qp-secondary {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  /* Use User's custom background colors instead of Shadcn default bg */
+  background-color: var(--bg-color);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+/* Custom Scrollbar for IDE Panels */
+/* Firefox has no ::-webkit-scrollbar support at all — without this it falls
+   back to the browser's native (often arrow-button) scrollbar even with the
+   rules below in place. */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}
+
+/* End of index.css */

@@ -1,0 +1,18 @@
+services:
+  iqm-service:
+    build: .
+    image: qrious-iqm-service
+    container_name: qrious-iqm-service
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Bounded log retention, same rationale as video_service/docker-compose.yml:
+    # main.py logs every request with print(..., flush=True) — without this,
+    # `docker logs` keeps every line forever over a long dev session.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

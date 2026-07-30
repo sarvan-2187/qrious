@@ -1,0 +1,17 @@
+# Fully self-contained — this service is an independent deployable, not built from
+# the backend/ tree. See video_service/requirements.txt for the same precedent.
+
+fastapi
+uvicorn[standard]
+python-dotenv    # loads .env (main.py, iqm_client.py)
+
+# qiskit-iqm is a dead end: the package itself now raises RuntimeError at import
+# time for any Resonance use ("please use iqm-client[qiskit] instead") — confirmed
+# by actually installing it (v18.2, the latest release; no older version supports
+# Resonance either). iqm-client[qiskit] is IQM's own migration target — heavier
+# (pulls iqm-pulse/iqm-station-control-client as mandatory base deps, not just via
+# the qiskit extra) but it's the only package that still works against Resonance.
+# Still fine to isolate here: this container's entire purpose is holding whatever
+# qiskit line IQM's SDK needs away from backend/'s qiskit>=2.0 line
+# (qiskit-ibm-runtime/qiskit-ionq). See PLANS/iqm-service.md and PLANS/qroute.md §2.3/§6.
+iqm-client[qiskit]

@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: "Geist Sans";
+    src: url("{{ font_base }}/geist-sans-latin-400-normal.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "Geist Sans";
+    src: url("{{ font_base }}/geist-sans-latin-600-normal.woff2") format("woff2");
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    background: #faf7f0;
+    color: #1c2333;
+    font-family: "Geist Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 96px 120px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: #faf7f0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 56px;
+  }
+
+  .brand-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #1c2333;
+  }
+
+  .brand-text {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #5b6472;
+    text-transform: uppercase;
+  }
+
+  .title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 62px;
+    font-weight: 400;
+    line-height: 1.2;
+    max-width: 1550px;
+    margin-bottom: 16px;
+    color: #10141f;
+  }
+
+  .title-rule {
+    width: 140px;
+    height: 4px;
+    background: #1c2333;
+    margin-bottom: 56px;
+  }
+
+  .card {
+    flex: 1;
+    border: 1px solid #dcd5c4;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 64px 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 36px;
+    box-shadow: 0 2px 24px rgba(28, 35, 51, 0.06);
+  }
+
+  .bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    font-size: 36px;
+    line-height: 1.45;
+    font-weight: 400;
+    color: #232a3b;
+  }
+
+  .bullet-marker {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    margin-top: 16px;
+    border-radius: 2px;
+    background: #b08a3e;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 56px;
+    left: 120px;
+    right: 120px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #8a8f9a;
+    font-size: 20px;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+  <div class="slide">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div class="brand-text">Qrious &middot; AI Video Overview</div>
+    </div>
+
+    <div class="title">{{ title }}</div>
+    <div class="title-rule"></div>
+
+    <div class="card">
+      {% for bullet in bullets %}
+      <div class="bullet">
+        <div class="bullet-marker"></div>
+        <div>{{ bullet }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="footer">
+      <span>Generated overview</span>
+      <span>{{ slide_number }} / {{ total_slides }}</span>
+    </div>
+  </div>
+</body>
+</html>
