@@ -20,6 +20,30 @@ from services.roadmap_seed import seed_roadmap_topics
 from services.flashcard_seed import seed_flashcards
 from services.course_seed import seed_domain_courses
 from services.badge_engine import badge_engine
+
+async def cleanup_orphaned_data(db):
+    """Remove enrollment and lesson_progress records that reference deleted courses/lessons."""
+    try:
+        courses = await db.courses.find({}, {"_id": 1}).to_list(200)
+        valid_course_ids = {c["_id"] for c in courses}
+        lessons = await db.lessons.find({}, {"_id": 1}).to_list(2000)
+        valid_lesson_ids = {l["_id"] for l in lessons}
+
+        # Enrollments pointing to deleted courses
+        all_enrollments = await db.enrollments.find({}, {"_id": 1, "course_id": 1}).to_list(1000)
+        orphan_enrollment_ids = [e["_id"] for e in all_enrollments if e["course_id"] not in valid_course_ids]
+        if orphan_enrollment_ids:
+            result = await db.enrollments.delete_many({"_id": {"$in": orphan_enrollment_ids}})
+            print(f"[Cleanup] Removed {result.deleted_count} orphaned enrollment(s)")
+
+        # Lesson progress pointing to deleted lessons
+        all_progress = await db.lesson_progress.find({}, {"_id": 1, "lesson_id": 1}).to_list(5000)
+        orphan_progress_ids = [p["_id"] for p in all_progress if p["lesson_id"] not in valid_lesson_ids]
+        if orphan_progress_ids:
+            result = await db.lesson_progress.delete_many({"_id": {"$in": orphan_progress_ids}})
+            print(f"[Cleanup] Removed {result.deleted_count} orphaned lesson_progress record(s)")
+    except Exception as e:
+        print(f"[Cleanup Warning] Non-critical orphan cleanup failed: {e}")
 from services.qroute_notifier import poll_and_notify_jobs
 from routers.qroute_router import warm_device_cache
 
@@ -33,6 +57,7 @@ async def lifespan(app: FastAPI):
         await seed_quiz_questions(get_db())
         await seed_flashcards(get_db())
         await seed_domain_courses(get_db())
+        await cleanup_orphaned_data(get_db())
         await badge_engine.seed_badges(get_db())
     except Exception as e:
         print(f"[Lifespan Startup Warning] MongoDB initialization/seeding deferred due to network connectivity: {e}")
@@ -167,12 +192,19 @@ async def add_cors_headers(request, call_next):
     return response
 
 
+from fastapi.staticfiles import StaticFiles
+
 @app.get("/")
 async def root():
     return {
         "message": "Welcome to Qrious API!",
         "status": "running"
     }
+
+# Mount static slides directory
+slides_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "public", "slides")
+if os.path.exists(slides_path):
+    app.mount("/slides", StaticFiles(directory=slides_path), name="slides")
 
 
 @app.get("/health")

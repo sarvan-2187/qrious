@@ -17,7 +17,9 @@ const CATEGORY_LABELS: Record<ComponentKind, string> = {
   twpa: 'Quantum Amplifiers',
   hemt: 'Cryo Amplifiers',
   circulator: 'Circulators & Isolators',
-  filter: 'Microwave Filters'
+  filter: 'Microwave Filters',
+  dc_block: 'DC Blocks',
+  digitizer: 'Digitizers'
 };
 
 export const ComponentTray: React.FC<ComponentTrayProps> = ({ onInspect }) => {

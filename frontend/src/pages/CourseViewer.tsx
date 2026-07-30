@@ -7,10 +7,11 @@ import { listLiveSessions, type LiveSession, getLiveSessionDownloadUrl } from '.
 import type { Course } from '../api/courses';
 import { getViewUrl } from '../api/resources';
 import { useAuth } from '../context/AuthContext';
-import { FaArrowLeft, FaArrowRight, FaRegCircle, FaPlayCircle, FaFileAlt, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaRegCircle, FaPlayCircle, FaFileAlt, FaChevronDown, FaChevronUp, FaFlask } from 'react-icons/fa';
 import { Separator } from '@/components/ui/separator';
 import { VideoResourcePlayer } from '../components/VideoResourcePlayer';
 import { DocumentViewer } from '../components/DocumentViewer';
+import { InteractiveCourseLab } from '@/components/InteractiveCourseLab';
 import { Progress } from "@/components/ui/progress";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarGroup, SidebarTrigger, SidebarInset, SidebarRail } from "@/components/ui/sidebar";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -235,7 +236,13 @@ export default function CourseViewer() {
                         className={`w-full text-left pl-8 pr-4 py-3 flex items-start gap-3 transition-colors ${isActive ? 'bg-primary/10 border-l-2 border-primary' : 'hover:bg-secondary/50 border-l-2 border-transparent'}`}
                       >
                         <div className="mt-[2px]">
-                          {isVideo ? <FaPlayCircle className={isActive ? 'text-primary' : 'text-muted-foreground'} /> : <FaFileAlt className={isActive ? 'text-primary' : 'text-muted-foreground'} />}
+                          {isVideo ? (
+                            <FaPlayCircle className={isActive ? 'text-primary' : 'text-muted-foreground'} />
+                          ) : res.resource_type === 'interactive_lab' || res.resource_type === 'gates_playground' ? (
+                            <FaFlask className={isActive ? 'text-emerald-500' : 'text-muted-foreground'} />
+                          ) : (
+                            <FaFileAlt className={isActive ? 'text-primary' : 'text-muted-foreground'} />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className={`text-sm ${isActive ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
@@ -370,19 +377,23 @@ export default function CourseViewer() {
         <div className="flex-1 overflow-auto flex flex-col relative custom-scrollbar p-2 md:p-6">
           {activeResource ? (
             <div className="w-full max-w-[1200px] mx-auto h-full flex flex-col">
-               <div className="w-full flex-1 relative min-h-[500px] flex flex-col bg-card rounded-xl overflow-hidden shadow-2xl border border-border">
-                 {activeResource.resourceType === 'video' ? (
-                   <VideoResourcePlayer resourceId={activeResource.resourceId} title={activeResource.resourceTitle} />
-                 ) : activeResource.resourceType === 'live_session_recording' ? (
-                   <VideoResourcePlayer 
-                     resourceId={activeResource.lessonId} 
-                     title={activeResource.resourceTitle}
-                     fetchUrl={getLiveSessionDownloadUrl}
-                   />
+                 {activeResource.resourceType === 'interactive_lab' || activeResource.resourceType === 'gates_playground' ? (
+                   <InteractiveCourseLab taskInstructions={activeResource.description || "Construct and simulate the quantum circuit for this lesson task."} />
                  ) : (
-                   <DocumentViewerWrapper resourceId={activeResource.resourceId} />
+                   <div className="w-full flex-1 relative min-h-[500px] flex flex-col bg-card rounded-xl overflow-hidden shadow-2xl border border-border">
+                     {activeResource.resourceType === 'video' ? (
+                       <VideoResourcePlayer resourceId={activeResource.resourceId} title={activeResource.resourceTitle} />
+                     ) : activeResource.resourceType === 'live_session_recording' ? (
+                       <VideoResourcePlayer 
+                         resourceId={activeResource.lessonId} 
+                         title={activeResource.resourceTitle}
+                         fetchUrl={getLiveSessionDownloadUrl}
+                       />
+                     ) : (
+                       <DocumentViewerWrapper resourceId={activeResource.resourceId} />
+                     )}
+                   </div>
                  )}
-               </div>
                
                {/* Resource Metadata & Next Button Row */}
                <div className="w-full mt-4 md:mt-6 bg-card rounded-xl p-4 md:p-6 border border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shrink-0">

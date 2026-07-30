@@ -17,6 +17,7 @@ const ACCEPTED_TYPES: Record<ResourceType, { accept: string; mimeType: string; l
   ppt: { accept: ".pdf", mimeType: "application/pdf", label: "Slides (PDF) — export PPTX to PDF" },
   notes: { accept: ".pdf", mimeType: "application/pdf", label: "Notes (PDF)" },
   cheatsheet: { accept: ".pdf", mimeType: "application/pdf", label: "Cheatsheet (PDF)" },
+  interactive_lab: { accept: ".json,.qasm,.pdf", mimeType: "application/json", label: "Interactive Quantum Lab (Gates Playground)" },
 };
 
 export default function ResourceUpload({ lessonId }: { lessonId: string }) {
@@ -64,7 +65,8 @@ export default function ResourceUpload({ lessonId }: { lessonId: string }) {
       video: 500 * 1024 * 1024,
       ppt: 50 * 1024 * 1024,
       notes: 20 * 1024 * 1024,
-      cheatsheet: 20 * 1024 * 1024
+      cheatsheet: 20 * 1024 * 1024,
+      interactive_lab: 50 * 1024 * 1024
     };
     if (file.size > sizeMap[resourceType as ResourceType]) {
       setErrorMessage(`File is too large. Maximum size for ${resourceType} is ${sizeMap[resourceType as ResourceType] / (1024 * 1024)}MB.`);
@@ -192,6 +194,7 @@ export default function ResourceUpload({ lessonId }: { lessonId: string }) {
                         <SelectItem value="ppt">{ACCEPTED_TYPES.ppt.label}</SelectItem>
                         <SelectItem value="notes">{ACCEPTED_TYPES.notes.label}</SelectItem>
                         <SelectItem value="cheatsheet">{ACCEPTED_TYPES.cheatsheet.label}</SelectItem>
+                        <SelectItem value="interactive_lab">Interactive Lab (Gates Playground)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
