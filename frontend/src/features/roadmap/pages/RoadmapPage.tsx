@@ -12,11 +12,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-<<<<<<< HEAD
 import { useSearchParams } from 'react-router-dom';
-=======
 import { DomainSelector } from '../components/DomainSelector';
->>>>>>> 6d1b778929b6eb8df158f11d878ac9eee73d14e0
 
 interface RoadmapUnit {
   id: number;
