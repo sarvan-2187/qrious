@@ -1,25 +1,50 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  Undo, 
+  Keyboard, 
+  Maximize2, 
+  Shield, 
+  Sliders, 
+  AlertTriangle, 
+  RotateCcw, 
+  Play,
+  Cpu,
+  Thermometer,
+  Box,
+  LayoutTemplate,
+  History,
+  HardDrive
+} from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useBuildState } from '../hooks/useBuildState';
 import { useAssemblyStepGate } from '../hooks/useAssemblyStepGate';
 import { useQForgeApi } from '../hooks/useQForgeApi';
+
+// Sub-components
 import { CryostatScene } from '../components/CryostatScene';
 import { ComponentTray } from '../components/ComponentTray';
-import { AssemblyStepper } from '../components/AssemblyStepper';
 import { SignalChainRail } from '../components/SignalChainRail';
-import { ComponentConfigPanel } from '../components/ComponentConfigPanel';
+import { PropertyInspector } from '../components/PropertyInspector';
 import { BuildReportPanel } from '../components/BuildReportPanel';
 import { QubitCalibrationModal } from '../components/QubitCalibrationModal';
 import { FaultInjectionDrawer } from '../components/FaultInjectionDrawer';
 import { QecSurfaceCodeModal } from '../components/QecSurfaceCodeModal';
 import { KeyboardShortcutsModal } from '../components/KeyboardShortcutsModal';
 import { GuidedAssemblyAssistant } from '../components/GuidedAssemblyAssistant';
+import { QForgeOnboardingModal } from '../components/QForgeOnboardingModal';
+import { PedagogicalErrorModal } from '../components/PedagogicalErrorModal';
+import { LiveMetricsSidebar } from '../components/LiveMetricsSidebar';
+import { LabNotebookModal } from '../components/LabNotebookModal';
+import { StartBuildView } from '../components/StartBuildView';
+
+// Data
 import { COMPONENTS } from '../constants/components';
 import { QPU_CATALOG } from '../data/qpuCatalog';
 import { CRYOSTAT_CATALOG } from '../data/cryostatCatalog';
 import type { ComponentSpec } from '../constants/components';
+import type { QForgeMode } from '../components/ModeSelectorBar';
 
 export const QForgeBuilderPage: React.FC = () => {
   const { theme } = useTheme();
@@ -34,8 +59,15 @@ export const QForgeBuilderPage: React.FC = () => {
   }, []);
 
   const { buildGraph, placeComponent, removeComponent, resetBuild, undo } = useBuildState();
-  const { currentStep, advanceStep, resetStep, progressPercent } = useAssemblyStepGate();
+  const { currentStep, resetStep } = useAssemblyStepGate();
   const { scoreBuild, isLoading } = useQForgeApi();
+
+  // Mode & State
+  const [isBuildStarted, setIsBuildStarted] = useState(false);
+  const [currentMode, setCurrentMode] = useState<QForgeMode>('guided');
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [showNotebook, setShowNotebook] = useState<boolean>(false);
+  const [pedagogicalError, setPedagogicalError] = useState<string | null>(null);
 
   // Hardware & Modal States
   const [selectedQpuId, setSelectedQpuId] = useState('contralto_a');
@@ -49,9 +81,15 @@ export const QForgeBuilderPage: React.FC = () => {
   const [showFaultDrawer, setShowFaultDrawer] = useState(false);
   const [showQecModal, setShowQecModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
-  const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [isExploded, setIsExploded] = useState(false);
   const [activeFaults, setActiveFaults] = useState<string[]>([]);
+
+  const handleStartBuild = () => {
+    setIsBuildStarted(true);
+    if (currentMode === 'guided') {
+      setShowOnboarding(true);
+    }
+  };
 
   const handleToggleFault = (faultId: string) => {
     setActiveFaults(prev => 
@@ -62,9 +100,6 @@ export const QForgeBuilderPage: React.FC = () => {
   const handleFullReset = () => {
     resetBuild();
     resetStep();
-    setSelectedQpuId('contralto_a');
-    setSelectedCryostatId('ld450sl');
-    setWiringType('discrete_coax');
     setActiveFaults([]);
     setSimulationReport(null);
     setShowReport(false);
@@ -74,6 +109,7 @@ export const QForgeBuilderPage: React.FC = () => {
     setShowShortcutsModal(false);
     setIsExploded(false);
     setInspectedSpec(null);
+    setPedagogicalError(null);
   };
 
   const handleRunSimulation = async () => {
@@ -101,7 +137,6 @@ export const QForgeBuilderPage: React.FC = () => {
     }
   };
 
-  // Keyboard Shortcuts Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) {
@@ -112,7 +147,6 @@ export const QForgeBuilderPage: React.FC = () => {
       else if (key === 'u') { undo(); }
       else if (key === 'e') { handleRunSimulation(); }
       else if (key === 'r') { handleFullReset(); }
-      else if (key === 'g') { setIsGuidedMode(prev => !prev); }
       else if (key === 'x') { setIsExploded(prev => !prev); }
       else if (key === 'c') { setShowCalibrationModal(prev => !prev); }
       else if (key === 'f') { setShowFaultDrawer(prev => !prev); }
@@ -126,197 +160,216 @@ export const QForgeBuilderPage: React.FC = () => {
 
   const handleSelectComponentById = (componentId: string) => {
     const spec = COMPONENTS.find(c => c.id === componentId);
-    if (spec) setInspectedSpec(spec);
+    if (spec) {
+      setInspectedSpec(spec);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('application/json');
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        const spec = COMPONENTS.find(c => c.id === parsed.componentId);
+        if (spec) {
+          // Open inspector with default or detected stage
+          setInspectedSpec(spec);
+        }
+      } catch (err) {
+        console.error("Drop parsing failed", err);
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   };
 
   const currentQpu = QPU_CATALOG.find(q => q.id === selectedQpuId);
+  const currentCryo = CRYOSTAT_CATALOG.find(c => c.id === selectedCryostatId);
 
+  // START BUILD SCREEN
+  if (!isBuildStarted) {
+    return (
+      <div className={cn("h-screen flex flex-col font-sans", isDark ? "bg-zinc-950" : "bg-zinc-100")}>
+        <header className={cn(
+          "px-6 py-4 border-b flex items-center shrink-0",
+          isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"
+        )}>
+          <div className="flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-emerald-500" />
+            <h1 className="text-sm font-mono uppercase tracking-wider text-zinc-200 font-semibold">QForge Workstation</h1>
+          </div>
+        </header>
+        <StartBuildView 
+          currentMode={currentMode}
+          onSelectMode={setCurrentMode}
+          selectedQpuId={selectedQpuId}
+          onSelectQpuId={setSelectedQpuId}
+          selectedCryostatId={selectedCryostatId}
+          onSelectCryostatId={setSelectedCryostatId}
+          onStartBuild={handleStartBuild}
+        />
+      </div>
+    );
+  }
+
+  // WORKSPACE SCREEN
   return (
     <div className={cn(
       "h-[calc(100vh-3.5rem)] font-sans flex flex-col relative overflow-hidden transition-colors duration-300",
       isDark ? "bg-zinc-950 text-zinc-50" : "bg-zinc-100 text-zinc-900"
     )}>
-      {/* Header Bar Navigation & Shortcuts */}
+      {/* 
+        Professional Toolbar Hierarchy:
+        Logo | Config | Simulation | History | Modules | XP
+      */}
       <header className={cn(
-        "p-2.5 border-b flex justify-between items-center shrink-0 z-10 transition-colors duration-300 gap-2 overflow-x-auto",
-        isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"
+        "px-4 py-2 border-b flex justify-between items-center shrink-0 z-10 transition-colors duration-300 gap-4",
+        isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"
       )}>
-        <div className="flex items-center gap-2">
-          <h1 className="text-base font-bold text-emerald-600 dark:text-emerald-400 shrink-0">QForge Builder</h1>
+        {/* Left: Logo & Config */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-emerald-500" />
+            <h1 className="text-xs font-mono uppercase tracking-wider font-semibold">QForge</h1>
+          </div>
           
-          <div className="flex items-center gap-1.5 text-xs">
-            <select 
-              value={selectedQpuId}
-              onChange={e => setSelectedQpuId(e.target.value)}
-              className={cn(
-                "border rounded px-2 py-1 text-xs font-medium outline-none",
-                isDark ? "bg-zinc-950 border-zinc-800 text-zinc-200" : "bg-zinc-50 border-zinc-200 text-zinc-800"
-              )}
-            >
-              {QPU_CATALOG.map(q => (
-                <option key={q.id} value={q.id}>{q.name} ({q.qubits}Q)</option>
-              ))}
-            </select>
+          <div className={cn("h-4 w-px", isDark ? "bg-zinc-800" : "bg-zinc-300")} />
 
-            <select 
-              value={selectedCryostatId}
-              onChange={e => setSelectedCryostatId(e.target.value)}
-              className={cn(
-                "border rounded px-2 py-1 text-xs font-medium outline-none",
-                isDark ? "bg-zinc-950 border-zinc-800 text-zinc-200" : "bg-zinc-50 border-zinc-200 text-zinc-800"
-              )}
-            >
-              {CRYOSTAT_CATALOG.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-
-            <select 
-              value={wiringType}
-              onChange={e => setWiringType(e.target.value as any)}
-              className={cn(
-                "border rounded px-2 py-1 text-xs font-medium outline-none hidden md:block",
-                isDark ? "bg-zinc-950 border-zinc-800 text-zinc-200" : "bg-zinc-50 border-zinc-200 text-zinc-800"
-              )}
-            >
-              <option value="discrete_coax">Discrete Coax</option>
-              <option value="crioflex">Cri/oFlex Flex-Circuit</option>
-            </select>
+          <div className="flex items-center gap-3 text-[11px] font-mono">
+            <div className="flex items-center gap-1.5" title="Active QPU">
+               <HardDrive className="w-3.5 h-3.5 text-zinc-400" />
+               <span className="text-zinc-300">{currentQpu?.name}</span>
+            </div>
+            <div className="flex items-center gap-1.5" title="Active Cryostat">
+               <Thermometer className="w-3.5 h-3.5 text-zinc-400" />
+               <span className="text-zinc-300">{currentCryo?.name}</span>
+            </div>
+            <div className="flex items-center gap-1.5" title="Mode">
+               <LayoutTemplate className="w-3.5 h-3.5 text-zinc-400" />
+               <span className="text-emerald-400 capitalize">{currentMode}</span>
+            </div>
           </div>
         </div>
 
-        <div className="w-1/6 hidden lg:block">
-          <AssemblyStepper progress={progressPercent} currentStep={currentStep} />
-        </div>
+        {/* Center/Right: Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          
+          {/* History */}
+          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-md p-1">
+             <button 
+                onClick={() => undo()}
+                disabled={buildGraph.placedComponents.length === 0}
+                className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 disabled:opacity-40"
+                title="Undo [Ctrl+Z]"
+              >
+                <Undo className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={handleFullReset}
+                className="p-1 rounded text-zinc-400 hover:text-red-400 hover:bg-zinc-800"
+                title="Reset Build [R]"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+          </div>
 
-        {/* Header Action Toolbar */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button 
-            onClick={() => setIsGuidedMode(prev => !prev)}
-            className={cn(
-              "px-2.5 py-1.5 border rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-sm cursor-pointer",
-              isGuidedMode 
-                ? "bg-emerald-600 border-emerald-500 text-white animate-pulse" 
-                : (isDark ? "bg-zinc-800 border-zinc-700 text-emerald-400 hover:bg-zinc-700" : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100")
-            )}
-            title="Toggle Step-by-Step Guided Assembly Assistant [Press G]"
-          >
-            <span>🎯</span> Guided Mode
-          </button>
+          <div className={cn("h-4 w-px mx-1", isDark ? "bg-zinc-800" : "bg-zinc-300")} />
 
-          <button 
-            onClick={() => undo()}
-            disabled={buildGraph.placedComponents.length === 0}
-            className={cn(
-              "px-2.5 py-1.5 border rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm cursor-pointer disabled:opacity-40",
-              isDark ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200"
-            )}
-            title="Undo last placed component [Press Ctrl+Z or U]"
-          >
-            <span>↩</span> Undo
-          </button>
+          {/* Modules */}
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setIsExploded(prev => !prev)}
+              className={cn(
+                "px-2.5 py-1.5 border rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer",
+                isExploded 
+                  ? "bg-purple-600 border-purple-500 text-white" 
+                  : (isDark ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200")
+              )}
+              title="Toggle 3D Exploded View [X]"
+            >
+              <Maximize2 className="w-3.5 h-3.5" /> Exploded
+            </button>
+            <button 
+              onClick={() => setShowCalibrationModal(true)}
+              className={cn(
+                "px-2.5 py-1.5 border rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer",
+                isDark ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200"
+              )}
+            >
+              <Sliders className="w-3.5 h-3.5" /> Calibration
+            </button>
+            <button 
+              onClick={() => setShowQecModal(true)}
+              className={cn(
+                "px-2.5 py-1.5 border rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer",
+                isDark ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200"
+              )}
+            >
+              <Shield className="w-3.5 h-3.5" /> QEC
+            </button>
+            <button 
+              onClick={() => setShowFaultDrawer(true)}
+              className={cn(
+                "px-2.5 py-1.5 border rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer",
+                activeFaults.length > 0
+                  ? "bg-amber-600 border-amber-500 text-white"
+                  : (isDark ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200")
+              )}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" /> Faults {activeFaults.length > 0 && `(${activeFaults.length})`}
+            </button>
+          </div>
 
-          <button 
-            onClick={() => setShowShortcutsModal(true)}
-            className={cn(
-              "px-2 py-1.5 border rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm cursor-pointer",
-              isDark ? "bg-zinc-800 border-zinc-700 text-amber-400 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-200 text-amber-600 hover:bg-zinc-200"
-            )}
-            title="Open Keyboard Shortcuts List [Press ?]"
-          >
-            <span>⌨</span> Shortcuts
-          </button>
+          <div className={cn("h-4 w-px mx-1", isDark ? "bg-zinc-800" : "bg-zinc-300")} />
 
-          <button 
-            onClick={() => setIsExploded(prev => !prev)}
-            className={cn(
-              "px-2.5 py-1.5 border rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm cursor-pointer",
-              isExploded 
-                ? "bg-purple-600 border-purple-500 text-white" 
-                : (isDark ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200")
-            )}
-            title="Toggle 3D Exploded Cryostat Camera View [Press X]"
-          >
-            <span>💥</span> Exploded View
-          </button>
-
-          <button 
-            onClick={() => setShowQecModal(true)}
-            className="px-2 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm"
-            title="Open Quantum Error Correction Surface Code Lab [Press Q]"
-          >
-            <span>🛡</span> QEC Lab
-          </button>
-
-          <button 
-            onClick={() => setShowCalibrationModal(true)}
-            className="px-2 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm"
-            title="Open Spectroscopy & Rabi Pulse Calibration Lab [Press C]"
-          >
-            <span>🔬</span> Calibration
-          </button>
-
-          <button 
-            onClick={() => setShowFaultDrawer(true)}
-            className={cn(
-              "px-2 py-1.5 border rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm",
-              activeFaults.length > 0
-                ? "bg-amber-600 border-amber-500 text-white animate-pulse"
-                : (isDark ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200")
-            )}
-            title="Open Hardware Fault Injection Lab [Press F]"
-          >
-            <span>⚠</span> Faults {activeFaults.length > 0 && `(${activeFaults.length})`}
-          </button>
-
-          <button 
-            onClick={handleFullReset}
-            className={cn(
-              "px-2 py-1.5 border rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm cursor-pointer",
-              isDark ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-red-950/50 hover:text-red-400 hover:border-red-800" : "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-            )}
-            title="Completely reset simulator to default state [Press R]"
-          >
-            <span>🔄</span> Reset & Try Again
-          </button>
-
+          {/* Evaluate Action */}
           <button 
             onClick={handleRunSimulation}
             disabled={isLoading}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
-            title="Evaluate Thermal, Signal, and Power Specs [Press E]"
+            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
-            <span>⚡</span> {isLoading ? 'Simulating...' : 'Cooldown & Evaluate'}
+            <Play className="w-3.5 h-3.5 fill-current" /> {isLoading ? 'Simulating...' : 'Evaluate'}
           </button>
         </div>
       </header>
 
-      {/* Guided Assembly Assistant Banner */}
-      {isGuidedMode && (
-        <GuidedAssemblyAssistant 
-          buildGraph={buildGraph} 
-          onUndo={undo}
-          onClose={() => setIsGuidedMode(false)} 
-        />
-      )}
-
-      {/* Main Workspace */}
+      {/* Main Workspace: 18% | 64% | 18% Layout */}
       <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* Left Panel: Component Library (18%) */}
         <aside className={cn(
-          "w-80 shrink-0 min-w-[320px] border-r p-4 overflow-y-auto z-10 transition-colors duration-300",
-          isDark ? "bg-zinc-900/50 border-zinc-800" : "bg-zinc-50 border-zinc-200"
+          "w-[18%] min-w-[260px] max-w-[320px] border-r flex flex-col z-10 transition-colors duration-300",
+          isDark ? "bg-zinc-950/80 border-zinc-800" : "bg-zinc-50 border-zinc-200"
         )}>
-          <ComponentTray 
-            onPlace={placeComponent} 
-            onInspect={setInspectedSpec}
-            currentStep={currentStep} 
-          />
+          {/* Header */}
+          <div className="p-4 border-b border-zinc-800/50">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <Box className="w-3.5 h-3.5" /> Component Library
+            </h2>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+             <ComponentTray 
+               onPlace={placeComponent} 
+               onInspect={setInspectedSpec}
+               currentStep={currentStep} 
+             />
+          </div>
         </aside>
 
-        <main className={cn(
-          "flex-1 flex flex-col relative min-w-0 overflow-hidden transition-colors duration-300",
+        {/* Center: Workspace (64%) */}
+        <main 
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          className={cn(
+          "flex-[3] flex flex-col relative min-w-0 overflow-hidden transition-colors duration-300",
           isDark ? "bg-zinc-950" : "bg-zinc-100"
         )}>
+          {/* Breadcrumbs or Stage indicator can go here */}
+          
           <div className="flex-1 relative min-h-0">
             <CryostatScene 
               buildGraph={buildGraph} 
@@ -324,66 +377,26 @@ export const QForgeBuilderPage: React.FC = () => {
               onSelectComponent={handleSelectComponentById}
               isExploded={isExploded}
             />
-
-            <div className={cn(
-              "absolute top-4 left-4 border p-3 rounded-xl shadow-xl backdrop-blur max-w-xs z-10 transition-colors duration-300",
-              isDark ? "bg-zinc-900/90 border-zinc-800" : "bg-white/90 border-zinc-200"
-            )}>
-              <div className="flex justify-between items-center mb-1.5">
-                <h3 className={cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-zinc-300" : "text-zinc-700")}>
-                  Installed ({buildGraph.placedComponents.length})
-                </h3>
-                <span className="text-[10px] text-emerald-500 font-mono font-bold">{currentQpu?.name}</span>
-              </div>
-              
-              {buildGraph.placedComponents.length === 0 ? (
-                <p className={cn("text-xs italic", isDark ? "text-zinc-500" : "text-zinc-400")}>
-                  No components installed yet. Click "Install to Cryostat" in the catalog.
-                </p>
-              ) : (
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                  {buildGraph.placedComponents.map(comp => {
-                    const spec = COMPONENTS.find(c => c.id === comp.componentId);
-                    return (
-                      <div key={comp.id} className={cn(
-                        "flex justify-between items-center text-xs p-1.5 border rounded",
-                        isDark ? "bg-zinc-950 border-zinc-800" : "bg-zinc-50 border-zinc-200"
-                      )}>
-                        <div>
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">{spec?.name}</span>
-                          <span className={cn("text-[10px] ml-1.5", isDark ? "text-zinc-500" : "text-zinc-400")}>({comp.stageId})</span>
-                        </div>
-                        <button 
-                          onClick={() => removeComponent(comp.id)}
-                          className="text-zinc-400 hover:text-red-500 text-xs px-1"
-                          title="Remove from cryostat"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
 
           <div className={cn(
-            "shrink-0 border-t px-4 py-2.5 overflow-hidden z-10 transition-colors duration-300",
-            isDark ? "bg-zinc-900/90 border-zinc-800" : "bg-white/95 border-zinc-200"
+            "shrink-0 border-t px-4 py-3 z-10 transition-colors duration-300",
+            isDark ? "bg-zinc-950/90 border-zinc-800" : "bg-white/95 border-zinc-200"
           )}>
-            <h3 className={cn("text-[10px] font-semibold uppercase tracking-wider mb-1", isDark ? "text-zinc-400" : "text-zinc-500")}>
-              Signal Lines Schematic ({wiringType === 'crioflex' ? 'Cri/oFlex Flex-Circuit' : 'Discrete Coax Wiring'})
-            </h3>
-            <div className="grid grid-cols-2 gap-3 items-center">
+            <div className="flex items-center justify-between mb-2">
+               <h3 className={cn("text-[10px] font-mono uppercase tracking-wider", isDark ? "text-zinc-500" : "text-zinc-500")}>
+                 Signal Schematic ({wiringType === 'crioflex' ? 'Flex' : 'Coax'})
+               </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4 items-center">
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold shrink-0">DRIVE:</span>
+                <span className="text-[10px] text-emerald-400 font-mono font-semibold shrink-0">DRIVE</span>
                 <div className="flex-1 overflow-hidden">
                   <SignalChainRail components={buildGraph.placedComponents} line="drive" />
                 </div>
               </div>
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-semibold shrink-0">READOUT:</span>
+                <span className="text-[10px] text-sky-400 font-mono font-semibold shrink-0">READ</span>
                 <div className="flex-1 overflow-hidden">
                   <SignalChainRail components={buildGraph.placedComponents} line="readout" />
                 </div>
@@ -391,14 +404,73 @@ export const QForgeBuilderPage: React.FC = () => {
             </div>
           </div>
         </main>
+
+        {/* Right Panel: Inspector & Metrics (18%) */}
+        <aside className={cn(
+          "w-[18%] min-w-[280px] max-w-[340px] border-l flex flex-col z-10 transition-colors duration-300",
+          isDark ? "bg-zinc-950/80 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"
+        )}>
+          {inspectedSpec ? (
+             <div className="flex-1 overflow-hidden">
+               <PropertyInspector 
+                 spec={inspectedSpec}
+                 onApply={(stage, line) => {
+                   placeComponent({
+                     id: Math.random().toString(36).substr(2, 9),
+                     componentId: inspectedSpec.id,
+                     stageId: stage,
+                     line: line
+                   });
+                   setInspectedSpec(null);
+                 }}
+                 onCancel={() => setInspectedSpec(null)}
+               />
+             </div>
+          ) : (
+             <div className="flex-1 flex flex-col">
+               {currentMode === 'guided' && (
+                 <div className="border-b border-zinc-800">
+                   <GuidedAssemblyAssistant 
+                     buildGraph={buildGraph} 
+                     onUndo={undo}
+                     onClose={() => setCurrentMode('free')} 
+                   />
+                 </div>
+               )}
+               <LiveMetricsSidebar buildGraph={buildGraph} />
+             </div>
+          )}
+        </aside>
+
       </div>
 
-      {inspectedSpec && (
-        <ComponentConfigPanel 
-          spec={inspectedSpec} 
-          onClose={() => setInspectedSpec(null)} 
+      {/* Modals & Overlays */}
+      {showOnboarding && (
+        <QForgeOnboardingModal
+          onStart={() => {
+            setCurrentMode('guided');
+            setShowOnboarding(false);
+          }}
+          onClose={() => setShowOnboarding(false)}
         />
       )}
+
+      {pedagogicalError && (
+        <PedagogicalErrorModal
+          errorMessage={pedagogicalError}
+          onFixIt={undo}
+          onClose={() => setPedagogicalError(null)}
+        />
+      )}
+
+      {showNotebook && (
+        <LabNotebookModal
+          buildGraph={buildGraph}
+          onClose={() => setShowNotebook(false)}
+        />
+      )}
+
+
 
       {showFaultDrawer && (
         <FaultInjectionDrawer
@@ -429,14 +501,14 @@ export const QForgeBuilderPage: React.FC = () => {
       )}
 
       {showReport && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-6 z-50 overflow-y-auto">
           <div className={cn(
             "w-full max-w-4xl border rounded-2xl p-6 relative shadow-2xl transition-colors duration-300",
             isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"
           )}>
             <button 
               onClick={() => setShowReport(false)}
-              className={cn("absolute top-4 right-4 text-lg font-bold hover:opacity-70", isDark ? "text-zinc-400" : "text-zinc-500")}
+              className={cn("absolute top-4 right-4 text-lg font-medium hover:opacity-70 cursor-pointer", isDark ? "text-zinc-400" : "text-zinc-500")}
             >
               ✕
             </button>

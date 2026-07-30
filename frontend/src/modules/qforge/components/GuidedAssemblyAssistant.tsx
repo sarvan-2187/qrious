@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Compass, CheckCircle2, ChevronRight, X, Clock } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import type { BuildGraphState } from '../hooks/useBuildState';
@@ -54,7 +55,7 @@ export const GUIDED_STEPS: StepInstruction[] = [
   },
   {
     stepNum: 4,
-    title: "Cold Plate IR Protection & Purcell Filter",
+    title: "Cold Plate IR Protection",
     stageId: "coldplate",
     recommendedComponent: "Purcell Filter",
     componentIdMatch: "purcell_filter",
@@ -64,32 +65,32 @@ export const GUIDED_STEPS: StepInstruction[] = [
   },
   {
     stepNum: 5,
-    title: "MXC Stage 20 dB Attenuator",
+    title: "MXC Stage Attenuation",
     stageId: "mxc",
     recommendedComponent: "20 dB Attenuator",
     componentIdMatch: "attenuator_20db",
     line: "drive",
-    explanation: "Install a 20 dB Attenuator at the MXC stage (10 mK) to complete the 62 dB total drive attenuation budget (20+6+6+10+20 dB).",
+    explanation: "Install a 20 dB Attenuator at the MXC stage (10 mK) to complete the 62 dB total drive attenuation budget.",
     isComplete: (graph) => graph.placedComponents.some(c => c.stageId === 'mxc' && c.componentId.includes('20db'))
   },
   {
     stepNum: 6,
-    title: "MXC Stage TWPA Amplification",
+    title: "MXC Stage TWPA",
     stageId: "mxc",
     recommendedComponent: "TWPA",
     componentIdMatch: "twpa",
     line: "readout",
-    explanation: "Install a TWPA (Traveling-Wave Parametric Amplifier) at the MXC stage (10 mK) directly above the QPU for quantum-limited readout.",
+    explanation: "Install a TWPA at the MXC stage (10 mK) directly above the QPU for quantum-limited readout.",
     isComplete: (graph) => graph.placedComponents.some(c => c.stageId === 'mxc' && c.componentId === 'twpa')
   },
   {
     stepNum: 7,
-    title: "Cooldown & System Evaluation",
+    title: "System Evaluation",
     stageId: "mxc",
     recommendedComponent: "Cooldown & Evaluate",
     componentIdMatch: "cooldown",
     line: "drive",
-    explanation: "All core components installed! Click '⚡ Cooldown & Evaluate' in the header toolbar to execute thermal and signal integrity evaluation.",
+    explanation: "All core components installed! Click 'Evaluate' in the header toolbar to execute thermal and signal evaluation.",
     isComplete: (graph) => graph.placedComponents.length >= 6
   }
 ];
@@ -105,98 +106,63 @@ export const GuidedAssemblyAssistant: React.FC<GuidedAssemblyAssistantProps> = (
   const activeStepIndex = GUIDED_STEPS.findIndex(s => !s.isComplete(buildGraph));
   const currentStep = activeStepIndex === -1 ? GUIDED_STEPS[GUIDED_STEPS.length - 1] : GUIDED_STEPS[activeStepIndex];
   const stepNumber = activeStepIndex === -1 ? 7 : activeStepIndex + 1;
-
-  // Check if last placed component violates the active step recommendation
-  const lastPlaced = buildGraph.placedComponents[buildGraph.placedComponents.length - 1];
-  const errorInfo = useMemo(() => {
-    if (!lastPlaced || activeStepIndex === -1) return null;
-
-    // Ignore lastPlaced if it belongs to an already completed step
-    const completedSteps = GUIDED_STEPS.slice(0, activeStepIndex);
-    const belongsToCompletedStep = completedSteps.some(s => s.stageId === lastPlaced.stageId);
-    if (belongsToCompletedStep) {
-      return null;
-    }
-    
-    const spec = COMPONENTS.find(c => c.id === lastPlaced.componentId);
-    const specName = spec?.name || lastPlaced.componentId;
-
-    // Error Condition 1: Placed on wrong stage
-    if (lastPlaced.stageId !== currentStep.stageId && stepNumber < 7) {
-      return {
-        message: `Step Mismatch: You placed ${specName} on ${lastPlaced.stageId.toUpperCase()} Stage, but Step ${stepNumber} requires placing ${currentStep.recommendedComponent} on ${currentStep.stageId.toUpperCase()} Stage.`
-      };
-    }
-
-    return null;
-  }, [lastPlaced, currentStep, activeStepIndex, stepNumber]);
-
-  const isError = Boolean(errorInfo);
+  const isAllComplete = activeStepIndex === -1;
 
   return (
-    <div className={cn(
-      "w-full border-b p-4 shadow-lg transition-colors duration-300 relative font-sans",
-      isError 
-        ? "bg-red-950/90 border-red-500 text-red-100 animate-pulse"
-        : (isDark ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-100" : "bg-emerald-50 border-emerald-200 text-emerald-900")
-    )}>
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-start gap-3 flex-1">
-          <div className={cn(
-            "w-9 h-9 rounded-full font-bold flex items-center justify-center text-sm shrink-0 shadow-sm",
-            isError ? "bg-red-600 text-white" : "bg-emerald-600 text-white"
-          )}>
-            {isError ? '⚠️' : stepNumber}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={cn(
-                "text-xs font-mono font-bold uppercase tracking-wider",
-                isError ? "text-red-300" : "text-emerald-600 dark:text-emerald-400"
-              )}>
-                {isError ? `Step ${stepNumber} Warning: Mismatch Detected` : `Step ${stepNumber} of 7: ${currentStep.title}`}
-              </span>
-              <span className={cn(
-                "text-[10px] px-2 py-0.5 rounded font-mono font-bold text-white",
-                isError ? "bg-red-700" : "bg-emerald-700"
-              )}>
-                {isError ? 'ERR' : `Target: ${currentStep.stageId.toUpperCase()}`}
-              </span>
-            </div>
+    <div className={cn("p-4 flex flex-col font-sans", isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900")}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5">
+          <Compass className="w-4 h-4" /> Guided Tour
+        </h2>
+        <button onClick={onClose} className="p-1 text-zinc-500 hover:text-zinc-300 rounded" title="Exit Tour">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
-            <p className="text-xs mt-1 leading-relaxed font-medium">
-              {isError ? (
-                <span className="text-red-200 font-semibold">{errorInfo?.message}</span>
-              ) : (
-                <span>👉 <span className="font-semibold">{currentStep.explanation}</span></span>
-              )}
-            </p>
-          </div>
+      {/* Breadcrumb Navigation */}
+      <div className={cn("flex flex-wrap items-center gap-1 text-[10px] font-mono mb-4", isDark ? "text-zinc-500" : "text-zinc-400")}>
+        <span>Assembly</span>
+        <ChevronRight className="w-3 h-3" />
+        <span>{currentStep.stageId.toUpperCase()} Stage</span>
+        <ChevronRight className="w-3 h-3" />
+        <span className={cn(isDark ? "text-zinc-300" : "text-zinc-700")}>Step {stepNumber}</span>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mb-4">
+        <div className="flex justify-between text-[10px] mb-1.5 font-medium">
+          <span className={isDark ? "text-zinc-400" : "text-zinc-500"}>Progress {stepNumber}/7</span>
+          <span className="text-emerald-500 flex items-center gap-1"><Clock className="w-3 h-3" /> ~{8 - stepNumber} min</span>
         </div>
+        <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden">
+          <div className="bg-emerald-500 h-full transition-all duration-300" style={{ width: `${(stepNumber / 7) * 100}%` }}></div>
+        </div>
+      </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          {isError && onUndo && (
+      {/* Sticky Task Tracker Card */}
+      <div className={cn(
+        "p-3 rounded-md border",
+        isDark ? "bg-zinc-900/50 border-zinc-800" : "bg-zinc-50 border-zinc-200"
+      )}>
+        <h3 className={cn("text-xs font-semibold mb-2 flex justify-between items-center", isAllComplete ? "text-emerald-500" : (isDark ? "text-zinc-200" : "text-zinc-800"))}>
+          {currentStep.title}
+          {isAllComplete && <CheckCircle2 className="w-4 h-4" />}
+        </h3>
+        <p className={cn("text-[11px] leading-relaxed mb-3", isDark ? "text-zinc-400" : "text-zinc-600")}>
+          {currentStep.explanation}
+        </p>
+
+        <div className={cn("flex justify-between items-center pt-2 border-t", isDark ? "border-zinc-800" : "border-zinc-200")}>
+          <div className="text-[10px] font-mono text-zinc-500">Reward: <span className="text-emerald-400">+25 XP</span></div>
+          {onUndo && (
             <button 
               onClick={onUndo}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1 cursor-pointer"
+              className="text-[10px] uppercase font-semibold text-zinc-500 hover:text-zinc-300"
             >
-              <span>↩</span> Revert Error (Undo)
+              Undo Last Action
             </button>
           )}
-
-          <div className="text-right hidden sm:block">
-            <span className="text-[10px] font-mono opacity-70 block">Target Action</span>
-            <span className={cn("text-xs font-bold", isError ? "text-red-300" : "text-emerald-600 dark:text-emerald-300")}>
-              Install {currentStep.recommendedComponent}
-            </span>
-          </div>
-
-          <button 
-            onClick={onClose}
-            className={cn("px-2.5 py-1 text-xs font-bold rounded hover:opacity-70", isError ? "text-red-300" : (isDark ? "text-emerald-400" : "text-emerald-700"))}
-          >
-            Exit Guided Mode ✕
-          </button>
         </div>
       </div>
     </div>

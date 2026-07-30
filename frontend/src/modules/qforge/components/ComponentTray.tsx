@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { Search, GripVertical, ChevronDown, ChevronRight, Hash } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { COMPONENTS } from '../constants/components';
-import type { ComponentSpec } from '../constants/components';
+import type { ComponentSpec, ComponentKind } from '../constants/components';
 import type { PlacedComponent } from '../hooks/useBuildState';
-import type { StageId } from '../constants/stages';
 
 interface ComponentTrayProps {
   onPlace: (component: PlacedComponent) => void;
@@ -12,114 +12,155 @@ interface ComponentTrayProps {
   currentStep: string;
 }
 
-export const ComponentTray: React.FC<ComponentTrayProps> = ({ onPlace, onInspect, currentStep }) => {
+const CATEGORY_LABELS: Record<ComponentKind, string> = {
+  attenuator: 'Attenuators',
+  twpa: 'Quantum Amplifiers',
+  hemt: 'Cryo Amplifiers',
+  circulator: 'Circulators & Isolators',
+  filter: 'Microwave Filters'
+};
+
+export const ComponentTray: React.FC<ComponentTrayProps> = ({ onInspect }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const [selectedStages, setSelectedStages] = React.useState<Record<string, StageId>>({});
-  const [selectedLines, setSelectedLines] = React.useState<Record<string, 'drive' | 'readout'>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({
+    attenuator: true,
+    twpa: true,
+    hemt: true,
+    circulator: true,
+    filter: true
+  });
+
+  const toggleCat = (cat: string) => {
+    setExpandedCats(prev => ({ ...prev, [cat]: !prev[cat] }));
+  };
+
+  const filteredComponents = useMemo(() => {
+    return COMPONENTS.filter(c => 
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      c.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
+  const componentsByCat = useMemo(() => {
+    return filteredComponents.reduce((acc, comp) => {
+      acc[comp.kind] = acc[comp.kind] || [];
+      acc[comp.kind].push(comp);
+      return acc;
+    }, {} as Record<string, ComponentSpec[]>);
+  }, [filteredComponents]);
+
+  // Drag start handler for native HTML5 drag and drop
+  const handleDragStart = (e: React.DragEvent, spec: ComponentSpec) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ componentId: spec.id }));
+    e.dataTransfer.effectAllowed = 'copy';
+  };
 
   return (
-    <div>
-      <h2 className={cn("text-lg font-semibold mb-1", isDark ? "text-zinc-100" : "text-zinc-900")}>
-        Component Catalog
-      </h2>
-      <p className={cn("text-xs mb-4", isDark ? "text-zinc-400" : "text-zinc-500")}>
-        Click info to inspect specs, or select stage & line to install.
-      </p>
+    <div className="flex flex-col h-full font-sans">
       
-      <div className="space-y-3">
-        {COMPONENTS.map(comp => {
-          const currentStage = selectedStages[comp.id] || comp.validStages[0];
-          const currentLine = selectedLines[comp.id] || (comp.kind === 'attenuator' ? 'drive' : 'readout');
-
-          return (
-            <div 
-              key={comp.id} 
-              className={cn(
-                "p-3 border rounded-xl transition-all shadow-sm",
-                isDark 
-                  ? "bg-zinc-900/80 border-zinc-800 hover:border-zinc-700" 
-                  : "bg-white border-zinc-200 hover:border-zinc-300"
-              )}
-            >
-              <div className="flex justify-between items-start">
-                <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{comp.name}</h3>
-                <button 
-                  onClick={() => onInspect(comp)}
-                  className={cn(
-                    "text-xs px-2 py-0.5 rounded transition-colors font-medium",
-                    isDark 
-                      ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-200" 
-                      : "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
-                  )}
-                  title="Inspect Component Specs"
-                >
-                  ℹ Details
-                </button>
-              </div>
-              
-              <p className={cn("text-xs mt-1 line-clamp-2", isDark ? "text-zinc-400" : "text-zinc-600")}>
-                {comp.description}
-              </p>
-              
-              {/* Controls for Stage and Line Selection */}
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <label className={cn("text-[10px] block mb-1 font-medium", isDark ? "text-zinc-400" : "text-zinc-500")}>
-                    Target Stage
-                  </label>
-                  <select 
-                    value={currentStage}
-                    onChange={(e) => setSelectedStages(prev => ({ ...prev, [comp.id]: e.target.value as StageId }))}
-                    className={cn(
-                      "w-full border rounded px-1.5 py-1 text-xs outline-none",
-                      isDark 
-                        ? "bg-zinc-950 border-zinc-800 text-zinc-200" 
-                        : "bg-zinc-50 border-zinc-200 text-zinc-800"
-                    )}
-                  >
-                    {comp.validStages.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={cn("text-[10px] block mb-1 font-medium", isDark ? "text-zinc-400" : "text-zinc-500")}>
-                    Line
-                  </label>
-                  <select 
-                    value={currentLine}
-                    onChange={(e) => setSelectedLines(prev => ({ ...prev, [comp.id]: e.target.value as 'drive' | 'readout' }))}
-                    className={cn(
-                      "w-full border rounded px-1.5 py-1 text-xs outline-none",
-                      isDark 
-                        ? "bg-zinc-950 border-zinc-800 text-zinc-200" 
-                        : "bg-zinc-50 border-zinc-200 text-zinc-800"
-                    )}
-                  >
-                    <option value="drive">Drive Line</option>
-                    <option value="readout">Readout Line</option>
-                  </select>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => onPlace({
-                  id: Math.random().toString(36).substr(2, 9),
-                  componentId: comp.id,
-                  stageId: currentStage,
-                  line: currentLine
-                })}
-                className="mt-3 w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 shadow-sm"
-              >
-                <span>+</span> Install to Cryostat
-              </button>
-            </div>
-          );
-        })}
+      {/* Search Bar */}
+      <div className="relative mb-4 shrink-0">
+        <Search className={cn("absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-zinc-500" : "text-zinc-400")} />
+        <input 
+          type="text"
+          placeholder="Search components..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className={cn(
+            "w-full pl-9 pr-3 py-2 rounded-md text-xs outline-none border transition-colors",
+            isDark 
+              ? "bg-zinc-900 border-zinc-800 text-zinc-200 focus:border-zinc-700 placeholder-zinc-500" 
+              : "bg-white border-zinc-200 text-zinc-800 focus:border-zinc-300 placeholder-zinc-400"
+          )}
+        />
       </div>
+
+      {filteredComponents.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 opacity-50">
+           <Hash className="w-8 h-8 mb-2 text-zinc-500" />
+           <p className="text-xs text-zinc-500 font-medium">No components found</p>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {Object.entries(componentsByCat).map(([kind, specs]) => {
+            const isExpanded = expandedCats[kind] ?? true;
+            const categoryName = CATEGORY_LABELS[kind as ComponentKind] || kind;
+            return (
+              <div key={kind} className="space-y-1.5">
+                {/* Category Header */}
+                <button 
+                  onClick={() => toggleCat(kind)}
+                  className="w-full flex items-center justify-between py-1 group cursor-pointer"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 group-hover:text-zinc-400 transition-colors">
+                    {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                    {categoryName}
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-600 bg-zinc-800/50 px-1.5 rounded">{specs.length}</span>
+                </button>
+
+                {/* Tiles */}
+                {isExpanded && (
+                  <div className="space-y-1.5">
+                    {specs.map(comp => (
+                      <div 
+                        key={comp.id} 
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, comp)}
+                        onClick={() => onInspect(comp)}
+                        className={cn(
+                          "flex items-stretch border rounded-md transition-all shadow-sm cursor-grab active:cursor-grabbing overflow-hidden group",
+                          isDark 
+                            ? "bg-zinc-900/40 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800" 
+                            : "bg-white border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
+                        )}
+                        title={`Drag to Cryostat or Click to Inspect: ${comp.name}`}
+                      >
+                        {/* Drag Handle Area */}
+                        <div className={cn(
+                          "w-6 flex items-center justify-center border-r shrink-0 transition-colors",
+                          isDark ? "bg-zinc-900/80 border-zinc-800 text-zinc-600 group-hover:text-zinc-400" : "bg-zinc-50 border-zinc-200 text-zinc-400 group-hover:text-zinc-500"
+                        )}>
+                           <GripVertical className="w-3.5 h-3.5" />
+                        </div>
+                        
+                        {/* Component Info */}
+                        <div className="flex-1 p-2 min-w-0">
+                          <h3 className={cn("text-xs font-semibold truncate", isDark ? "text-zinc-200" : "text-zinc-800")}>
+                            {comp.name}
+                          </h3>
+                          
+                          {/* Quick Badges */}
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {comp.attenuationDb !== undefined && (
+                              <span className="text-[9px] font-mono px-1 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+                                -{comp.attenuationDb}dB
+                              </span>
+                            )}
+                            {comp.gainDb !== undefined && (
+                              <span className="text-[9px] font-mono px-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-900">
+                                +{comp.gainDb}dB
+                              </span>
+                            )}
+                            {comp.noiseTempK !== undefined && (
+                              <span className="text-[9px] font-mono px-1 rounded bg-sky-950 text-sky-400 border border-sky-900">
+                                {comp.noiseTempK}K noise
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
