@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Literal, Optional, TypedDict
+from typing import Literal, NotRequired, Optional, TypedDict
 
 # Re-exported so the adapters next to this file get the flag from the same
 # import they already use for DeviceInfo/JobResult.
@@ -15,6 +15,11 @@ class DeviceInfo(TypedDict):
     modality: Modality      # per-DEVICE, not per-provider — aggregators mix modalities
     is_simulator: bool
     status: str
+    # NotRequired so the three adapters that can't cheaply report these keep
+    # returning valid DeviceInfo dicts unchanged. The resource optimizer treats
+    # a missing key exactly like None: fall back to the static capability table.
+    num_qubits: NotRequired[Optional[int]]
+    pending_jobs: NotRequired[Optional[int]]
 
 
 class JobResult(TypedDict):
