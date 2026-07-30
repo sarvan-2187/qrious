@@ -35,7 +35,7 @@ const QRoutePage: React.FC = () => {
   const { qubits, setQubits, cbits, setCbits, gates, addGate, setGates, qasm, updateQasm, updateGate, removeGate, expandMacroGate } =
     useCircuitState(3);
   const { exportQasm, importQasm } = useQasmApi();
-  const { listProviders, listDevices, submitJob, getJobStatus, listJobs } = useQRouteApi();
+  const { listProviders, listDevices, submitJob, getJobStatus, listJobs, error: apiError } = useQRouteApi();
 
   const [qasmError, setQasmError] = useState<string | null>(null);
   const isQasmEdit = useRef(false);
@@ -295,7 +295,10 @@ const QRoutePage: React.FC = () => {
                   </p>
                 ) : devices.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    No configured providers found. Check backend/.env credentials.
+                    {/* The hook's own error, when there is one — a failed/timed-out
+                        request used to land here as a misleading "check your
+                        credentials" even in production, where they're fine. */}
+                    {apiError ?? 'No quantum providers are available right now.'}
                   </p>
                 ) : (
                   <div className="space-y-3 max-h-64 overflow-auto custom-scrollbar pr-1">

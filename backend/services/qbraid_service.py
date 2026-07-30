@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 
+from app_env import IS_PRODUCTION
+
 load_dotenv()
 
 # qBraid's own job-status strings collapse to this small closed set so the
@@ -61,7 +63,13 @@ class QbraidService:
 
     def list_devices(self):
         devices = []
-        for device_id in _CURATED_DEVICE_IDS:
+        # The deployed account has no funded real-hardware credits (see the
+        # _CURATED_DEVICE_IDS notes above): every QPU submission there ends in a
+        # 402 or an instant unexplained FAILED. Production lists only the
+        # simulators so users aren't offered a device that cannot work; local
+        # dev still sees the full catalog for testing against real credentials.
+        device_ids = [d for d in _CURATED_DEVICE_IDS if "sim:" in d] if IS_PRODUCTION else _CURATED_DEVICE_IDS
+        for device_id in device_ids:
             try:
                 device = self.provider.get_device(device_id)
                 status_val = getattr(device, "status", "UNKNOWN")

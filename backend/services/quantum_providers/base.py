@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Literal, Optional, TypedDict
 
+# Re-exported so the adapters next to this file get the flag from the same
+# import they already use for DeviceInfo/JobResult.
+from app_env import IS_PRODUCTION  # noqa: F401
+
 Modality = Literal["superconducting", "trapped-ion", "aggregator"]
 
 
