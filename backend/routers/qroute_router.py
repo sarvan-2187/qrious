@@ -107,6 +107,8 @@ def _serialize_job(doc: dict) -> dict:
         "estimated_cost": doc.get("estimated_cost"),
         "error_message": doc.get("error_message"),
         "status_detail": doc.get("status_detail"),
+        # Absent on jobs submitted before the resource optimizer shipped.
+        "predicted_fidelity": doc.get("predicted_fidelity"),
         "created_at": doc["created_at"],
         "updated_at": doc["updated_at"],
     }
@@ -183,6 +185,90 @@ def _serialize_recommendation(rec) -> dict:
         "calibration_age_days": est.calibration_age_days,
         "confidence": est.confidence,
     }
+
+
+def _predict_fidelity(qasm: str, provider: str, device_id: str) -> float | None:
+    """The fidelity this circuit is predicted to achieve on this device.
+
+    Recorded at submission so it can later be compared against qCompare's
+    MEASURED divergence — that comparison is what turns the model from an
+    assertion into something with a known error bar. Returns None rather than
+    raising: a failed prediction must never block a student's submission."""
+    try:
+        ranked, _ = rank_devices(qasm, 1, [{"id": device_id, "name": device_id, "provider": provider}])
+    except Exception:
+        return None
+    if not ranked or not ranked[0].estimate.fits:
+        return None
+    return ranked[0].estimate.expected_fidelity
+
+
+def _calibration_points(jobs: list[dict], tvd_by_job: dict[str, float]):
+    """Pairs each job's predicted fidelity with the fidelity actually measured.
+
+    Measured fidelity is defined as 1 - TVD, where TVD is qCompare's total
+    variation distance between the hardware counts and an ideal Aer simulation
+    of the same circuit. Returns (points, metrics).
+
+    `metrics` reports MAE, RMSE, bias and Pearson r — the set a paper would
+    report, not just MAE. Each answers a different question: MAE is typical
+    error size, RMSE punishes large misses, BIAS shows the model is
+    systematically optimistic (it should be — the fidelity product is an upper
+    bound), and Pearson r shows whether the model at least RANKS devices
+    correctly even when its absolute values are off. Ranking correctly is what
+    the optimizer actually needs.
+
+    Deliberately no R^2: on a predicted-vs-measured comparison there are two
+    different R^2s (about the parity line, and about a fitted line) and
+    reporting an undefined one invites a fair challenge. RMSE plus r carries
+    the same information unambiguously."""
+    points = []
+    for job in jobs:
+        predicted = job.get("predicted_fidelity")
+        tvd = tvd_by_job.get(str(job["_id"]))
+        if predicted is None or tvd is None:
+            continue
+        points.append({
+            "job_id": str(job["_id"]),
+            "provider": job.get("provider", "qbraid"),
+            "device_id": job["device_id"],
+            "predicted_fidelity": predicted,
+            "measured_fidelity": 1.0 - tvd,
+            "created_at": job["created_at"],
+        })
+
+    if not points:
+        return [], None
+
+    n = len(points)
+    errors = [p["predicted_fidelity"] - p["measured_fidelity"] for p in points]
+    metrics = {
+        "n": n,
+        "mae": sum(abs(e) for e in errors) / n,
+        "rmse": (sum(e * e for e in errors) / n) ** 0.5,
+        # Positive bias = model optimistic, which is the expected direction.
+        "bias": sum(errors) / n,
+        "pearson_r": _pearson(
+            [p["predicted_fidelity"] for p in points],
+            [p["measured_fidelity"] for p in points],
+        ),
+    }
+    return points, metrics
+
+
+def _pearson(xs: list[float], ys: list[float]) -> float | None:
+    """Pearson correlation, or None when it is undefined (fewer than 2 points,
+    or no variance in either axis — e.g. every run on the same device)."""
+    n = len(xs)
+    if n < 2:
+        return None
+    mx, my = sum(xs) / n, sum(ys) / n
+    dx = [x - mx for x in xs]
+    dy = [y - my for y in ys]
+    denom = (sum(v * v for v in dx) ** 0.5) * (sum(v * v for v in dy) ** 0.5)
+    if denom == 0:
+        return None
+    return sum(a * b for a, b in zip(dx, dy)) / denom
 
 
 @router.post("/recommend")
@@ -264,6 +350,7 @@ async def submit_job(request: QasmJobRequest, current_user: dict = Depends(get_c
         "estimated_cost": None,
         "error_message": None,
         "status_detail": None,
+        "predicted_fidelity": _predict_fidelity(qasm, request.provider, request.device_id),
         "created_at": now,
         "updated_at": now,
     }
@@ -631,3 +718,20 @@ async def compare_to_animation(
     await db.qcompare_reports.update_one({"job_id": job_id}, {"$set": {"animation_output_id": output_id}})
     report["animation_output_id"] = output_id
     return _serialize_qcompare(report)
+
+@router.get("/calibration")
+async def get_calibration(current_user: dict = Depends(get_current_user)):
+    """Predicted vs measured fidelity across this user's completed jobs."""
+    db = get_db()
+    user_id = current_user.get("_id") or current_user.get("firebase_uid")
+    jobs = await db.quantum_hw_jobs.find(
+        {"user_id": user_id, "predicted_fidelity": {"$ne": None}}
+    ).sort("created_at", -1).to_list(length=200)
+    job_ids = [str(job["_id"]) for job in jobs]
+    reports = await db.qcompare_reports.find({"job_id": {"$in": job_ids}}).to_list(length=200)
+    tvd_by_job = {
+        report["job_id"]: report["total_variation_distance"]
+        for report in reports
+    }
+    points, metrics = _calibration_points(jobs, tvd_by_job)
+    return {"points": points, "metrics": metrics}
