@@ -475,7 +475,6 @@ const ComponentMesh: React.FC<ComponentMeshProps> = ({
       ref={groupRef} 
       position={[targetX, currentY, targetZ]} 
       onClick={(e) => { e.stopPropagation(); onSelect?.(); }}
-      className="cursor-pointer"
     >
       <ComponentGeometry kind={kind} isDrive={isDrive} />
 
@@ -533,7 +532,7 @@ export const CryostatScene: React.FC<CryostatSceneProps> = ({
         
         {/* Studio Omnidirectional Lighting Setup */}
         <ambientLight intensity={1.8} />
-        <hemisphereLight skyColor="#ffffff" groundColor="#f0c435" intensity={1.2} />
+        <hemisphereLight args={['#ffffff', '#f0c435', 1.2]} />
         
         <directionalLight position={[10, 10, 10]} intensity={0.9} color="#ffffff" />
         <directionalLight position={[-10, 10, -10]} intensity={0.9} color="#ffffff" />

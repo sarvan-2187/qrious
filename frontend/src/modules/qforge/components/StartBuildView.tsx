@@ -182,8 +182,8 @@ export const StartBuildView: React.FC<StartBuildViewProps> = ({
             <div className="flex-1 w-full">
                <div className={cn("text-[11px] font-mono leading-relaxed", isDark ? "text-zinc-400" : "text-zinc-500")}>
                  <div><span className="font-semibold">Target Coherence:</span> ~80 µs</div>
-                 <div><span className="font-semibold">Cooling Power:</span> {selectedCryo?.coolingPower}</div>
-                 <div><span className="font-semibold">Volume:</span> {selectedCryo?.volume}</div>
+                 <div><span className="font-semibold">Cooling Power:</span> {selectedCryo?.coolingPowerMxcUw} µW</div>
+                 <div><span className="font-semibold">Plate Diameter:</span> {selectedCryo?.plateDiameterMm} mm</div>
                </div>
             </div>
           </div>
