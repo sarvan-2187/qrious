@@ -113,22 +113,64 @@ const getUnitsForDomain = (domain: string, topics: RoadmapTopic[]): DynamicUnit[
   }
 
   if (domain === 'quantum-machine-learning') {
+    // Seven units over the 41 lectures, split where the MOOC itself changes
+    // subject (see the quantum-machine-learning block in roadmap_seed.py).
     return [
       {
         id: 1,
-        title: "UNIT 1: QUANTUM DATA REPRESENTATION",
-        subtitle: "Intro to QML, Basis & Amplitude Encoding, and Hamiltonian Feature Maps.",
+        title: "UNIT 1: QUANTUM FORMALISM FOR LEARNING",
+        subtitle: "Classical Probability, Quantum & Mixed States, Measurements, Closed & Open System Evolution.",
         icon: <FaAtom className="text-xl text-emerald-500" />,
-        topicIndexes: [0, 1, 2],
+        topicIndexes: [0, 1, 2, 3, 4, 5, 6, 7],
         side: 'left'
       },
       {
         id: 2,
-        title: "UNIT 2: QML ALGORITHMS & OPTIMIZATION",
-        subtitle: "SWAP Test State Similarity, Q-means Clustering, VQE & QAOA.",
-        icon: <FaRocket className="text-xl text-emerald-500" />,
-        topicIndexes: [3, 4, 5],
+        title: "UNIT 2: ISING MODELS & MANY-BODY PHYSICS",
+        subtitle: "Classical & Transverse Field Ising Models, plus Roger Melko's Many-Body Lectures.",
+        icon: <FaBookOpen className="text-xl text-emerald-500" />,
+        topicIndexes: [8, 9, 10, 11, 12],
         side: 'right'
+      },
+      {
+        id: 3,
+        title: "UNIT 3: COMPUTING PARADIGMS & OPTIMIZATION",
+        subtitle: "Gate Model, Adiabatic Computing, Quantum Annealing, QAOA & Thermal State Sampling.",
+        icon: <FaRocket className="text-xl text-emerald-500" />,
+        topicIndexes: [13, 14, 15, 16, 17, 18],
+        side: 'left'
+      },
+      {
+        id: 4,
+        title: "UNIT 4: VARIATIONAL CIRCUITS & SIMULATION",
+        subtitle: "Alan Aspuru-Guzik's four-part series on variational algorithms and quantum simulation.",
+        icon: <FaGraduationCap className="text-xl text-emerald-500" />,
+        topicIndexes: [19, 20, 21, 22],
+        side: 'right'
+      },
+      {
+        id: 5,
+        title: "UNIT 5: ENCODING & LEARNING ALGORITHMS",
+        subtitle: "Encoding Classical Data, Ensembles, QBoost, Clustering, Kernels & Graphical Models.",
+        icon: <FaBookOpen className="text-xl text-emerald-500" />,
+        topicIndexes: [23, 24, 25, 26, 27, 28, 29, 30],
+        side: 'left'
+      },
+      {
+        id: 6,
+        title: "UNIT 6: QUANTUM-ENHANCED KERNEL METHODS",
+        subtitle: "Maria Schuld's three-part series on quantum feature maps and kernel estimation.",
+        icon: <FaCrown className="text-xl text-emerald-500" />,
+        topicIndexes: [31, 32, 33],
+        side: 'right'
+      },
+      {
+        id: 7,
+        title: "UNIT 7: QUANTUM LINEAR ALGEBRA",
+        subtitle: "QFT, Phase Estimation, HHL & Matrix Inversion, Gaussian Processes, Seth Lloyd Guest Lecture.",
+        icon: <FaGraduationCap className="text-xl text-emerald-500" />,
+        topicIndexes: [34, 35, 36, 37, 38, 39, 40],
+        side: 'left'
       }
     ];
   }
@@ -402,9 +444,14 @@ export const RoadmapPage: React.FC = () => {
   const DOMAIN_FILTERS = [
     { id: 'quantum-computing', label: 'Quantum Computing', isReady: true, countDesc: '30 Lessons' },
     { id: 'quantum-communication', label: 'Quantum Communication', isReady: true, countDesc: '10 Lessons' },
-    { id: 'quantum-machine-learning', label: 'Quantum Machine Learning', isReady: false, countDesc: 'Coming Soon' },
+    { id: 'quantum-machine-learning', label: 'Quantum Machine Learning', isReady: true, countDesc: '41 Lessons' },
     { id: 'quantum-hardware', label: 'Hardware & Fault Tolerance', isReady: false, countDesc: 'Coming Soon' }
   ];
+
+  // Whether the selected track has a seeded curriculum, read off the flag above
+  // instead of re-listing domain ids at each of the three places that used to
+  // hardcode them — shipping a domain is now one flag flip, not a grep.
+  const selectedDomainReady = DOMAIN_FILTERS.find(d => d.id === selectedDomain)?.isReady ?? false;
 
   const getDomainMetadata = (domain: string, totalStages: number) => {
     switch (domain) {
@@ -510,11 +557,10 @@ export const RoadmapPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3.5 w-full">
             {DOMAIN_FILTERS.map(dom => {
               const isActive = selectedDomain === dom.id;
-              const domCount = dom.id === 'quantum-computing'
-                ? (selectedDomain === 'quantum-computing' ? topics.length || 30 : 30)
-                : dom.id === 'quantum-communication'
-                  ? (selectedDomain === 'quantum-communication' ? topics.length || 10 : 10)
-                  : 0;
+              // Live count for the track currently loaded, otherwise the
+              // number advertised on the card ("6 Lessons" -> 6).
+              const declaredCount = parseInt(dom.countDesc, 10) || 0;
+              const domCount = isActive ? topics.length || declaredCount : declaredCount;
               return (
                 <button
                   key={dom.id}
@@ -574,7 +620,7 @@ export const RoadmapPage: React.FC = () => {
         )}
 
         {/* Upcoming Track Placeholder or Active Saga Map */}
-        {!isLoading && !isError && selectedDomain !== 'quantum-computing' && selectedDomain !== 'quantum-communication' && (
+        {!isLoading && !isError && !selectedDomainReady && (
           <div className={cn(
             "flex flex-col items-center justify-center p-12 my-8 rounded-[2.5rem] border text-center max-w-2xl mx-auto backdrop-blur-md transition-all",
             isDark ? "bg-zinc-950/80 border-white/10 text-white" : "bg-white border-zinc-200 text-zinc-900"
@@ -600,7 +646,7 @@ export const RoadmapPage: React.FC = () => {
         )}
 
         {/* Evenly Spaced Winding Saga Map Container (Zero Overlap at Bends) */}
-        {!isLoading && !isError && (selectedDomain === 'quantum-computing' || selectedDomain === 'quantum-communication') && (
+        {!isLoading && !isError && selectedDomainReady && (
           <div
             ref={riverContainerRef}
             className="relative w-full max-w-[1600px] mx-auto min-h-[2200px] flex justify-center py-4 overflow-visible"

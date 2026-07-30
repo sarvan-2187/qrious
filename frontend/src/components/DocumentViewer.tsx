@@ -15,6 +15,19 @@ interface DocumentViewerProps {
 export function DocumentViewer({ fileUrl }: DocumentViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
+  const [pdfError, setPdfError] = useState(false);
+
+  if (pdfError) {
+    return (
+      <div className="flex flex-col items-center bg-muted/20 p-4 rounded-lg overflow-hidden w-full h-full min-h-[500px]">
+        <iframe 
+          src={fileUrl} 
+          title="PDF Document" 
+          className="w-full h-full min-h-[500px] border-0 rounded-md shadow-inner"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center bg-muted/20 p-4 rounded-lg overflow-hidden w-full h-full">
@@ -25,6 +38,7 @@ export function DocumentViewer({ fileUrl }: DocumentViewerProps) {
             setNumPages(numPages);
             setPageNumber(1);
           }}
+          onLoadError={() => setPdfError(true)}
           loading={
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -33,7 +47,7 @@ export function DocumentViewer({ fileUrl }: DocumentViewerProps) {
           }
           error={
             <div className="flex flex-col items-center justify-center py-20 text-destructive text-center">
-              Failed to load PDF. The link may have expired.
+              Failed to load PDF preview. Falling back to direct viewer...
             </div>
           }
         >

@@ -23,6 +23,10 @@ export interface Course {
   owner_uid: string;
   status: "draft" | "published";
   format?: "self_paced" | "cohort_based" | "recorded";
+  category?: string;
+  level?: string;
+  duration?: string;
+  tags?: string[];
   modules?: Module[];
   enrolled?: boolean;
 }

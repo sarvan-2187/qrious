@@ -238,11 +238,15 @@ async def get_download_url(resource_id: str, user=Depends(get_current_user)):
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
         
+    key = resource.get("b2_key", "")
+    if key.startswith("http://") or key.startswith("https://"):
+        return {"download_url": key}
+        
     VIDEO_URL_TTL_SECONDS = 6 * 60 * 60  # 6 hours
     DEFAULT_URL_TTL_SECONDS = 3600
     
     ttl = VIDEO_URL_TTL_SECONDS if resource.get("resource_type") == "video" else DEFAULT_URL_TTL_SECONDS
-    url = generate_download_url(resource["b2_key"], expires_in=ttl)
+    url = generate_download_url(key, expires_in=ttl)
     return {"download_url": url}
 
 @router.get("/resources/{resource_id}/view-url")
@@ -258,11 +262,15 @@ async def get_view_url(resource_id: str, user=Depends(get_current_user)):
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
         
+    key = resource.get("b2_key", "")
+    if key.startswith("http://") or key.startswith("https://"):
+        return {"view_url": key}
+        
     VIDEO_URL_TTL_SECONDS = 6 * 60 * 60  # 6 hours
     DEFAULT_URL_TTL_SECONDS = 3600
     
     ttl = VIDEO_URL_TTL_SECONDS if resource.get("resource_type") == "video" else DEFAULT_URL_TTL_SECONDS
-    url = generate_download_url(resource["b2_key"], expires_in=ttl)
+    url = generate_download_url(key, expires_in=ttl)
     return {"view_url": url}
 
 @router.get("/resources/{resource_id}")

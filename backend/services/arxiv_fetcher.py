@@ -257,14 +257,23 @@ async def sync_all_news(max_results_per_source: int = 30, force: bool = False) -
             latest = await db.quantum_news.find_one(sort=[("fetched_at", -1)])
             if latest and "fetched_at" in latest:
                 fetched_at = latest["fetched_at"]
-                if fetched_at.tzinfo is None:
-                    fetched_at = fetched_at.replace(tzinfo=timezone.utc)
-                now = datetime.now(timezone.utc)
-                age_minutes = (now - fetched_at).total_seconds() / 60
-                if age_minutes < 60:
-                    count = await db.quantum_news.count_documents({})
-                    print(f"[NewsSync] Fresh news already in MongoDB ({count} articles, updated {int(age_minutes)}m ago). Skipping live HTTP fetch.")
-                    return {"fetched": 0, "inserted": 0, "duplicates": 0, "sources": {"arxiv": 0, "qiskit": 0, "physorg": 0}, "cached": True}
+                if isinstance(fetched_at, str):
+                    try:
+                        fetched_at = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
+                    except Exception:
+                        fetched_at = None
+                elif isinstance(fetched_at, (int, float)):
+                    fetched_at = datetime.fromtimestamp(fetched_at, tz=timezone.utc)
+
+                if fetched_at and isinstance(fetched_at, datetime):
+                    if fetched_at.tzinfo is None:
+                        fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+                    now = datetime.now(timezone.utc)
+                    age_minutes = (now - fetched_at).total_seconds() / 60
+                    if age_minutes < 60:
+                        count = await db.quantum_news.count_documents({})
+                        print(f"[NewsSync] Fresh news already in MongoDB ({count} articles, updated {int(age_minutes)}m ago). Skipping live HTTP fetch.")
+                        return {"fetched": 0, "inserted": 0, "duplicates": 0, "sources": {"arxiv": 0, "qiskit": 0, "physorg": 0}, "cached": True}
         except Exception as e:
             print(f"[NewsSync Warning] Cache check failed, proceeding with live fetch: {e}")
 

@@ -860,6 +860,873 @@ SEED_TOPICS: List[Dict[str, Any]] = [
                 }
             ]
         }
+    },
+
+    # --- QUANTUM MACHINE LEARNING ROADMAP (41 LESSONS) ---
+    # Curriculum and lecture videos are the 41-part "Quantum Machine Learning MOOC"
+    # playlist; every video URL below was scraped from that playlist, not hand-written,
+    # so the ids resolve. estimated_minutes = lecture length + study time (see the
+    # generator note in PLANS if these need regenerating).
+    {
+        "slug": "qml-01-introduction",
+        "title": "Introduction",
+        "domain": "quantum-machine-learning",
+        "order_index": 1,
+        "prerequisites": [],
+        "estimated_minutes": 20,
+        "description": "Meet the course: why machine learning and quantum computing are being combined, what a realistic near-term quantum advantage looks like, and how the three learning paradigms map onto quantum hardware.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-01-introduction",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 01 - Introduction",
+                    "url": "https://www.youtube.com/watch?v=QtWCmO_KIlg&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-02-classical-probability-theory",
+        "title": "Classical Probability Theory",
+        "domain": "quantum-machine-learning",
+        "order_index": 2,
+        "prerequisites": ["qml-01-introduction"],
+        "estimated_minutes": 20,
+        "description": "Set up the classical baseline that quantum theory generalises — probability vectors, stochastic matrices, and expectation values expressed in the linear-algebraic form the quantum formalism reuses.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-02-classical-probability-theory",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 02 - Classical Probability Theory",
+                    "url": "https://www.youtube.com/watch?v=m77_muSPrs0&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-03-quantum-states",
+        "title": "Quantum States",
+        "domain": "quantum-machine-learning",
+        "order_index": 3,
+        "prerequisites": ["qml-02-classical-probability-theory"],
+        "estimated_minutes": 20,
+        "description": "Introduce the qubit as a normalised complex vector: superposition, the Born rule, global versus relative phase, and how a quantum state differs from a classical probability distribution.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-03-quantum-states",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 03 - Quantum States",
+                    "url": "https://www.youtube.com/watch?v=Y5WRv_9757A&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-04-multiple-qubits",
+        "title": "Multiple Qubits",
+        "domain": "quantum-machine-learning",
+        "order_index": 4,
+        "prerequisites": ["qml-03-quantum-states"],
+        "estimated_minutes": 20,
+        "description": "Build multi-qubit registers with the tensor product, distinguish product states from entangled ones, and see why the state space grows as 2^n — the resource every QML speed-up claim rests on.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-04-multiple-qubits",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 04 - Multiple Qubits",
+                    "url": "https://www.youtube.com/watch?v=bNCC0YMLHuk&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-05-measurements",
+        "title": "Measurements",
+        "domain": "quantum-machine-learning",
+        "order_index": 5,
+        "prerequisites": ["qml-04-multiple-qubits"],
+        "estimated_minutes": 25,
+        "description": "Formalise measurement as projection onto a basis: outcome probabilities, post-measurement collapse, expectation values of observables, and the sampling cost of estimating them on hardware.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-05-measurements",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 05 - Measurements",
+                    "url": "https://www.youtube.com/watch?v=aVFe08G0uYk&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-06-mixed-states",
+        "title": "Mixed States",
+        "domain": "quantum-machine-learning",
+        "order_index": 6,
+        "prerequisites": ["qml-05-measurements"],
+        "estimated_minutes": 20,
+        "description": "Extend pure states to density matrices for statistical ensembles: the trace and positivity conditions, purity, and reduced density matrices for describing a subsystem of an entangled pair.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-06-mixed-states",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 06 - Mixed States",
+                    "url": "https://www.youtube.com/watch?v=BE8RxAESx5I&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-07-evolution-in-closed-quantum-systems",
+        "title": "Evolution in Closed Quantum Systems",
+        "domain": "quantum-machine-learning",
+        "order_index": 7,
+        "prerequisites": ["qml-06-mixed-states"],
+        "estimated_minutes": 20,
+        "description": "Describe isolated dynamics with unitary operators and the Schrodinger equation, and connect a Hamiltonian to the time-evolution operator that quantum simulation approximates.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-07-evolution-in-closed-quantum-systems",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 07 - Evolution in Closed Quantum Systems",
+                    "url": "https://www.youtube.com/watch?v=P-mGqiKcEKE&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-08-open-quantum-systems",
+        "title": "Open Quantum Systems",
+        "domain": "quantum-machine-learning",
+        "order_index": 8,
+        "prerequisites": ["qml-07-evolution-in-closed-quantum-systems"],
+        "estimated_minutes": 20,
+        "description": "Account for a system coupled to its environment: decoherence, thermal states and the Gibbs distribution — the physics that both limits real devices and enables annealing-based sampling.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-08-open-quantum-systems",
+            "flashcard_category": "QML Foundations",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 08 - Open Quantum Systems",
+                    "url": "https://www.youtube.com/watch?v=_fmBNpDEen4&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-09-classical-ising-model",
+        "title": "Classical Ising Model",
+        "domain": "quantum-machine-learning",
+        "order_index": 9,
+        "prerequisites": ["qml-08-open-quantum-systems"],
+        "estimated_minutes": 20,
+        "description": "Introduce the Ising model as the canonical energy-based model: spins, couplings, and the energy function that encodes a huge class of optimisation problems.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-09-classical-ising-model",
+            "flashcard_category": "Ising Models & Many-Body Physics",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 09 - Classical Ising Model",
+                    "url": "https://www.youtube.com/watch?v=Wy9YoEYv-fA&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-10-transverse-field-ising-model",
+        "title": "Transverse Field Ising Model",
+        "domain": "quantum-machine-learning",
+        "order_index": 10,
+        "prerequisites": ["qml-09-classical-ising-model"],
+        "estimated_minutes": 20,
+        "description": "Add a transverse field to make the Hamiltonian genuinely quantum, producing non-commuting terms, quantum fluctuations, and the phase transition that adiabatic protocols exploit.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-10-transverse-field-ising-model",
+            "flashcard_category": "Ising Models & Many-Body Physics",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 10 - Transverse Field Ising Model",
+                    "url": "https://www.youtube.com/watch?v=egli0tC1tRo&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-11-quantum-many-body-physics",
+        "title": "Quantum Many-Body Physics (Roger Melko)",
+        "domain": "quantum-machine-learning",
+        "order_index": 11,
+        "prerequisites": ["qml-10-transverse-field-ising-model"],
+        "estimated_minutes": 25,
+        "description": "Guest lecture: why many-body quantum systems are hard — exponential Hilbert space growth, and what physicists actually want to compute from a many-body state.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-11-quantum-many-body-physics",
+            "flashcard_category": "Ising Models & Many-Body Physics",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 11 - Quantum Many-Body Physics (Roger Melko)",
+                    "url": "https://www.youtube.com/watch?v=MmpOva4-XPg&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-12-many-body-behavior-of-spins",
+        "title": "Many-Body Behavior of Spins (Roger Melko)",
+        "domain": "quantum-machine-learning",
+        "order_index": 12,
+        "prerequisites": ["qml-11-quantum-many-body-physics"],
+        "estimated_minutes": 25,
+        "description": "Guest lecture: emergent behaviour in interacting spin systems, order parameters, and phases of matter as the target of both simulation and learning.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-12-many-body-behavior-of-spins",
+            "flashcard_category": "Ising Models & Many-Body Physics",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 12 - Many-Body Behavior of Spins (Roger Melko)",
+                    "url": "https://www.youtube.com/watch?v=7HayIq9OR2E&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-13-strategies-to-solve-the-many-body-problem",
+        "title": "Strategies to Solve the Many-Body Problem (Roger Melko)",
+        "domain": "quantum-machine-learning",
+        "order_index": 13,
+        "prerequisites": ["qml-12-many-body-behavior-of-spins"],
+        "estimated_minutes": 25,
+        "description": "Guest lecture: the toolbox — Monte Carlo, tensor networks, and neural-network wavefunctions — and where each method breaks down, motivating quantum approaches.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-13-strategies-to-solve-the-many-body-problem",
+            "flashcard_category": "Ising Models & Many-Body Physics",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 13 - Strategies to Solve the Many-Body Problem (Roger Melko)",
+                    "url": "https://www.youtube.com/watch?v=uTCeQHzQMdc&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-14-gate-model-quantum-computing",
+        "title": "Gate-Model Quantum Computing",
+        "domain": "quantum-machine-learning",
+        "order_index": 14,
+        "prerequisites": ["qml-13-strategies-to-solve-the-many-body-problem"],
+        "estimated_minutes": 20,
+        "description": "Review the circuit paradigm as one of several models: universal gate sets, circuit depth, and the coherence-time budget that constrains every near-term algorithm.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-14-gate-model-quantum-computing",
+            "flashcard_category": "Quantum Computing Paradigms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 14 - Gate-Model Quantum Computing",
+                    "url": "https://www.youtube.com/watch?v=92uqxeofPak&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-15-adiabatic-quantum-computing",
+        "title": "Adiabatic Quantum Computing",
+        "domain": "quantum-machine-learning",
+        "order_index": 15,
+        "prerequisites": ["qml-14-gate-model-quantum-computing"],
+        "estimated_minutes": 20,
+        "description": "Compute by slowly deforming a Hamiltonian: the adiabatic theorem, the spectral gap that sets the required runtime, and its polynomial equivalence to the gate model.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-15-adiabatic-quantum-computing",
+            "flashcard_category": "Quantum Computing Paradigms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 15 - Adiabatic Quantum Computing",
+                    "url": "https://www.youtube.com/watch?v=csgEVurrBpU&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-16-quantum-annealing",
+        "title": "Quantum Annealing",
+        "domain": "quantum-machine-learning",
+        "order_index": 16,
+        "prerequisites": ["qml-15-adiabatic-quantum-computing"],
+        "estimated_minutes": 20,
+        "description": "Treat annealing as adiabatic computing's practical, finite-temperature relative — how D-Wave-style hardware minimises an Ising energy, and what it does and doesn't guarantee.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-16-quantum-annealing",
+            "flashcard_category": "Quantum Computing Paradigms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 16 - Quantum Annealing",
+                    "url": "https://www.youtube.com/watch?v=7btX7OuR2QM&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-17-implementations",
+        "title": "Implementations",
+        "domain": "quantum-machine-learning",
+        "order_index": 17,
+        "prerequisites": ["qml-16-quantum-annealing"],
+        "estimated_minutes": 20,
+        "description": "Survey the physical platforms — superconducting circuits, trapped ions, and annealers — comparing qubit counts, connectivity, and noise against algorithmic requirements.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-17-implementations",
+            "flashcard_category": "Quantum Computing Paradigms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 17 - Implementations",
+                    "url": "https://www.youtube.com/watch?v=l06HATJAbdI&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-18-quantum-approximate-optimization-algorithm",
+        "title": "Quantum Approximate Optimization Algorithm (QAOA)",
+        "domain": "quantum-machine-learning",
+        "order_index": 18,
+        "prerequisites": ["qml-17-implementations"],
+        "estimated_minutes": 20,
+        "description": "Discretise the adiabatic path into p alternating cost and mixer layers, then tune the angles with a classical optimiser — the gate-model route to combinatorial optimisation.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-18-quantum-approximate-optimization-algorithm",
+            "flashcard_category": "Quantum Computing Paradigms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 18 - Quantum Approximate Optimization Algorithm (QAOA)",
+                    "url": "https://www.youtube.com/watch?v=N8e5nAk6KBQ&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-19-sampling-a-thermal-state",
+        "title": "Sampling a Thermal State",
+        "domain": "quantum-machine-learning",
+        "order_index": 19,
+        "prerequisites": ["qml-18-quantum-approximate-optimization-algorithm"],
+        "estimated_minutes": 20,
+        "description": "Draw samples from a Boltzmann distribution using quantum hardware, the primitive that connects annealers to training energy-based machine-learning models.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-19-sampling-a-thermal-state",
+            "flashcard_category": "Quantum Computing Paradigms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 19 - Sampling a Thermal State",
+                    "url": "https://www.youtube.com/watch?v=VW43u8RM2qI&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-20-variational-circuits-and-quantum-simulation-1",
+        "title": "Variational Circuits and Quantum Simulation 1 (Alan Aspuru-Guzik)",
+        "domain": "quantum-machine-learning",
+        "order_index": 20,
+        "prerequisites": ["qml-19-sampling-a-thermal-state"],
+        "estimated_minutes": 20,
+        "description": "Guest lecture: the variational principle as an algorithm — a parameterised circuit prepares a trial state, hardware measures the energy, and a classical optimiser closes the loop.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-20-variational-circuits-and-quantum-simulation-1",
+            "flashcard_category": "Variational Circuits",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 20 - Variational Circuits and Quantum Simulation 1 (Alan Aspuru-Guzik).",
+                    "url": "https://www.youtube.com/watch?v=bVymBcvE7BA&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-21-variational-circuits-and-quantum-simulation-2",
+        "title": "Variational Circuits and Quantum Simulation 2 (Alan Aspuru-Guzik)",
+        "domain": "quantum-machine-learning",
+        "order_index": 21,
+        "prerequisites": ["qml-20-variational-circuits-and-quantum-simulation-1"],
+        "estimated_minutes": 25,
+        "description": "Guest lecture: VQE in practice for electronic structure — mapping fermionic Hamiltonians to qubits and grouping terms into measurable commuting sets.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-21-variational-circuits-and-quantum-simulation-2",
+            "flashcard_category": "Variational Circuits",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 21 - Variational Circuits and Quantum Simulation 2 (Alan Aspuru-Guzik)",
+                    "url": "https://www.youtube.com/watch?v=abB2zwLCmW4&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-22-variational-circuits-and-quantum-simulation-3",
+        "title": "Variational Circuits and Quantum Simulation 3 (Alan Aspuru-Guzik)",
+        "domain": "quantum-machine-learning",
+        "order_index": 22,
+        "prerequisites": ["qml-21-variational-circuits-and-quantum-simulation-2"],
+        "estimated_minutes": 20,
+        "description": "Guest lecture: ansatz design and optimisation, from chemistry-inspired to hardware-efficient circuits, and the measurement overhead each choice implies.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-22-variational-circuits-and-quantum-simulation-3",
+            "flashcard_category": "Variational Circuits",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 22 - Variational Circuits and Quantum Simulation 3 (Alan Aspuru-Guzik)",
+                    "url": "https://www.youtube.com/watch?v=qN0UdJda1a4&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-23-variational-circuits-and-quantum-simulation-4",
+        "title": "Variational Circuits and Quantum Simulation 4 (Alan Aspuru-Guzik)",
+        "domain": "quantum-machine-learning",
+        "order_index": 23,
+        "prerequisites": ["qml-22-variational-circuits-and-quantum-simulation-3"],
+        "estimated_minutes": 20,
+        "description": "Guest lecture: noise, error mitigation, and where variational quantum simulation stands against the best classical methods.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-23-variational-circuits-and-quantum-simulation-4",
+            "flashcard_category": "Variational Circuits",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 23 - Variational Circuits and Quantum Simulation 4 (Alan Aspuru-Guzik)",
+                    "url": "https://www.youtube.com/watch?v=Rm-wkvXkniw&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-24-encoding-classical-information",
+        "title": "Encoding Classical Information",
+        "domain": "quantum-machine-learning",
+        "order_index": 24,
+        "prerequisites": ["qml-23-variational-circuits-and-quantum-simulation-4"],
+        "estimated_minutes": 20,
+        "description": "Get classical data into a quantum state: basis, amplitude, and Hamiltonian encoding, and the state-preparation cost that can silently erase an algorithm's advantage.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-24-encoding-classical-information",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 24 - Encoding Classical Information",
+                    "url": "https://www.youtube.com/watch?v=LHzWAyT5rMI&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-25-ensemble-learning",
+        "title": "Ensemble Learning",
+        "domain": "quantum-machine-learning",
+        "order_index": 25,
+        "prerequisites": ["qml-24-encoding-classical-information"],
+        "estimated_minutes": 20,
+        "description": "Review boosting and ensembles classically, then frame the selection of weak learners as an optimisation problem a quantum device could solve.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-25-ensemble-learning",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 25 - Ensemble Learning",
+                    "url": "https://www.youtube.com/watch?v=TjVEfusNfVg&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-26-qboost",
+        "title": "QBoost",
+        "domain": "quantum-machine-learning",
+        "order_index": 26,
+        "prerequisites": ["qml-25-ensemble-learning"],
+        "estimated_minutes": 20,
+        "description": "Cast ensemble selection as a QUBO and hand it to an annealer, producing a sparse, regularised classifier — one of the earliest end-to-end quantum learning pipelines.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-26-qboost",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 26 - QBoost",
+                    "url": "https://www.youtube.com/watch?v=5Y3slnSx0wI&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-27-clustering-by-quantum-optimization",
+        "title": "Clustering by Quantum Optimization",
+        "domain": "quantum-machine-learning",
+        "order_index": 27,
+        "prerequisites": ["qml-26-qboost"],
+        "estimated_minutes": 20,
+        "description": "Express clustering as an Ising energy over pairwise distances and minimise it on quantum hardware instead of iterating Lloyd's algorithm.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-27-clustering-by-quantum-optimization",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 27 - Clustering by Quantum Optimization",
+                    "url": "https://www.youtube.com/watch?v=7MDwycGSiy0&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-28-kernel-methods",
+        "title": "Kernel Methods",
+        "domain": "quantum-machine-learning",
+        "order_index": 28,
+        "prerequisites": ["qml-27-clustering-by-quantum-optimization"],
+        "estimated_minutes": 20,
+        "description": "Recap the classical kernel trick — feature maps, inner products, and support vector machines — as the framework quantum feature maps plug directly into.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-28-kernel-methods",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 28 - Kernel Methods",
+                    "url": "https://www.youtube.com/watch?v=HILVRvDaQsE&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-29-an-interference-circuit",
+        "title": "An Interference Circuit",
+        "domain": "quantum-machine-learning",
+        "order_index": 29,
+        "prerequisites": ["qml-28-kernel-methods"],
+        "estimated_minutes": 20,
+        "description": "Use interference to compute an inner product between encoded data points, giving a quantum estimate of similarity and a nearest-neighbour style classifier.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-29-an-interference-circuit",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 29 - An Interference Circuit",
+                    "url": "https://www.youtube.com/watch?v=YHkfAC5Iu9I&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-30-probabilistic-graphical-models",
+        "title": "Probabilistic Graphical Models",
+        "domain": "quantum-machine-learning",
+        "order_index": 30,
+        "prerequisites": ["qml-29-an-interference-circuit"],
+        "estimated_minutes": 20,
+        "description": "Introduce Markov and Bayesian networks, the partition function, and why inference and sampling are the bottleneck classical methods struggle with.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-30-probabilistic-graphical-models",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 30 - Probabilistic Graphical Models",
+                    "url": "https://www.youtube.com/watch?v=DdWH2j6P8f0&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-31-optimization-and-sampling-in-pgms",
+        "title": "Optimization and Sampling in PGMs",
+        "domain": "quantum-machine-learning",
+        "order_index": 31,
+        "prerequisites": ["qml-30-probabilistic-graphical-models"],
+        "estimated_minutes": 20,
+        "description": "Train graphical models by sampling: contrastive divergence classically versus quantum thermal sampling, and how Boltzmann machines could be trained on annealers.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-31-optimization-and-sampling-in-pgms",
+            "flashcard_category": "Encoding & Learning Algorithms",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 31 - Optimization and Sampling in PGMs",
+                    "url": "https://www.youtube.com/watch?v=wk6zmGnJ3mw&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-32-quantum-enhanced-kernel-methods-1",
+        "title": "Quantum-Enhanced Kernel Methods 1 (Maria Schuld)",
+        "domain": "quantum-machine-learning",
+        "order_index": 32,
+        "prerequisites": ["qml-31-optimization-and-sampling-in-pgms"],
+        "estimated_minutes": 30,
+        "description": "Guest lecture: quantum circuits as feature maps into Hilbert space, with the kernel defined by the overlap between encoded states.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-32-quantum-enhanced-kernel-methods-1",
+            "flashcard_category": "Quantum Kernels",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 32 - Quantum-Enhanced Kernel Methods 1 (Maria Schuld)",
+                    "url": "https://www.youtube.com/watch?v=uDAAi5aQbMU&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-33-quantum-enhanced-kernel-methods-2",
+        "title": "Quantum-Enhanced Kernel Methods 2 (Maria Schuld)",
+        "domain": "quantum-machine-learning",
+        "order_index": 33,
+        "prerequisites": ["qml-32-quantum-enhanced-kernel-methods-1"],
+        "estimated_minutes": 25,
+        "description": "Guest lecture: estimating a kernel matrix on hardware, the sampling cost per entry, and the link between variational classifiers and kernel machines.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-33-quantum-enhanced-kernel-methods-2",
+            "flashcard_category": "Quantum Kernels",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 33 - Quantum-Enhanced Kernel Methods 2 (Maria Schuld)",
+                    "url": "https://www.youtube.com/watch?v=pfGHJivyzHA&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-34-quantum-enhanced-kernel-methods-3",
+        "title": "Quantum-Enhanced Kernel Methods 3 (Maria Schuld)",
+        "domain": "quantum-machine-learning",
+        "order_index": 34,
+        "prerequisites": ["qml-33-quantum-enhanced-kernel-methods-2"],
+        "estimated_minutes": 25,
+        "description": "Guest lecture: when a quantum kernel can beat a classical one — expressivity versus classical simulability, and honest limits on the advantage claims.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-34-quantum-enhanced-kernel-methods-3",
+            "flashcard_category": "Quantum Kernels",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 34 - Quantum-Enhanced Kernel Methods 3 (Maria Schuld)",
+                    "url": "https://www.youtube.com/watch?v=YWfAxmwOCjM&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-35-quantum-fourier-transform",
+        "title": "Quantum Fourier Transform",
+        "domain": "quantum-machine-learning",
+        "order_index": 35,
+        "prerequisites": ["qml-34-quantum-enhanced-kernel-methods-3"],
+        "estimated_minutes": 20,
+        "description": "Build the QFT as the quantum analogue of the DFT, its exponentially cheaper circuit, and its role as the engine behind phase estimation.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-35-quantum-fourier-transform",
+            "flashcard_category": "Quantum Linear Algebra",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 35 - Quantum Fourier Transform",
+                    "url": "https://www.youtube.com/watch?v=rtDC-j4Uw0A&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-36-quantum-phase-estimation",
+        "title": "Quantum Phase Estimation",
+        "domain": "quantum-machine-learning",
+        "order_index": 36,
+        "prerequisites": ["qml-35-quantum-fourier-transform"],
+        "estimated_minutes": 20,
+        "description": "Extract the eigenvalue of a unitary onto an ancilla register — the subroutine that turns eigenvalue problems into measurable phases.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-36-quantum-phase-estimation",
+            "flashcard_category": "Quantum Linear Algebra",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 36 - Quantum Phase Estimation",
+                    "url": "https://www.youtube.com/watch?v=tFQS9QvK-tE&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-37-overview-of-the-hhl-algorithm",
+        "title": "Overview of the HHL Algorithm",
+        "domain": "quantum-machine-learning",
+        "order_index": 37,
+        "prerequisites": ["qml-36-quantum-phase-estimation"],
+        "estimated_minutes": 20,
+        "description": "Walk the HHL pipeline for solving linear systems, and read its exponential speed-up carefully: the caveats on state preparation, condition number, and readout.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-37-overview-of-the-hhl-algorithm",
+            "flashcard_category": "Quantum Linear Algebra",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 37 - Overview of the HHL Algorithm",
+                    "url": "https://www.youtube.com/watch?v=hQpdPM-6wtU&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-38-quantum-matrix-inversion",
+        "title": "Quantum Matrix Inversion",
+        "domain": "quantum-machine-learning",
+        "order_index": 38,
+        "prerequisites": ["qml-37-overview-of-the-hhl-algorithm"],
+        "estimated_minutes": 20,
+        "description": "Implement the inversion step: conditional rotation by the reciprocal eigenvalue, amplitude amplification, and the success probability that governs the runtime.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-38-quantum-matrix-inversion",
+            "flashcard_category": "Quantum Linear Algebra",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 38 - Quantum Matrix Inversion",
+                    "url": "https://www.youtube.com/watch?v=24gxm-DhH2E&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-39-using-quantum-linear-algebra-for-learning",
+        "title": "Using Quantum Linear Algebra for Learning",
+        "domain": "quantum-machine-learning",
+        "order_index": 39,
+        "prerequisites": ["qml-38-quantum-matrix-inversion"],
+        "estimated_minutes": 20,
+        "description": "Apply quantum linear algebra to regression, PCA, and support vector machines, and check which of the advertised speed-ups survive realistic input/output assumptions.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-39-using-quantum-linear-algebra-for-learning",
+            "flashcard_category": "Quantum Linear Algebra",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 39 - Using Quantum Linear Algebra for Learning",
+                    "url": "https://www.youtube.com/watch?v=fgJ1pUbks4M&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-40-quantum-assisted-gaussian-processes",
+        "title": "Quantum-Assisted Gaussian Processes",
+        "domain": "quantum-machine-learning",
+        "order_index": 40,
+        "prerequisites": ["qml-39-using-quantum-linear-algebra-for-learning"],
+        "estimated_minutes": 20,
+        "description": "Use quantum linear-algebra subroutines inside Gaussian process regression, where the kernel-matrix inversion is exactly the classical bottleneck.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-40-quantum-assisted-gaussian-processes",
+            "flashcard_category": "Quantum Linear Algebra",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 40 - Quantum-Assisted Gaussian Processes",
+                    "url": "https://www.youtube.com/watch?v=A78Ez6dSWvA&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "qml-41-guest-lecture-by-seth-lloyd",
+        "title": "Guest Lecture by Seth Lloyd",
+        "domain": "quantum-machine-learning",
+        "order_index": 41,
+        "prerequisites": ["qml-40-quantum-assisted-gaussian-processes"],
+        "estimated_minutes": 35,
+        "description": "Closing guest lecture: a broad perspective on quantum machine learning — where the field's real opportunities lie and which claims deserve scepticism.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "qml-41-guest-lecture-by-seth-lloyd",
+            "flashcard_category": "Quantum Linear Algebra",
+            "videos": [
+                {
+                    "title": "Quantum Machine Learning - 41 - Guest lecture by Seth Lloyd",
+                    "url": "https://www.youtube.com/watch?v=OstyW7c0v48&list=PLmRxgFnCIhaMgvot-Xuym_hn69lmzIokg",
+                    "source": "Quantum Machine Learning MOOC"
+                }
+            ]
+        }
     }
 ]
 

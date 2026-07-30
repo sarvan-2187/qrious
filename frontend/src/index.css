@@ -191,6 +191,61 @@
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* Opts a whole subtree into the Quantum Playground's deep-black surfaces.
+   Pages built on shadcn primitives (Card, Badge, ScrollArea…) get the generic
+   preset instead — in dark mode that's --card: oklch(0.21), a visibly grey
+   panel next to Gates Playground's near-black --qp-card. Remapping the tokens
+   here fixes every descendant at once, including components we don't own,
+   rather than rewriting class strings page by page; the qp-* tokens are
+   defined for BOTH themes, so light mode follows along.
+
+   It must override the --color-* layer, NOT just --background/--card/etc.
+   Utilities compile to `background-color: var(--color-card)`, and the @theme
+   block above declares `--color-card: var(--card)` at :root — that var() is
+   substituted where it's DECLARED, so descendants inherit an already-resolved
+   colour. Redefining --card further down the tree changes nothing on its own.
+   Both layers are set here: --color-* is what the utilities read, and the bare
+   names keep anything reading them directly in agreement. */
+.theme-qp {
+  --background: var(--qp-bg);
+  --foreground: var(--qp-text);
+  --card: var(--qp-card);
+  --card-foreground: var(--qp-text);
+  --popover: var(--qp-secondary);
+  --popover-foreground: var(--qp-text);
+  --secondary: var(--qp-secondary);
+  --secondary-foreground: var(--qp-text);
+  --muted: var(--qp-hover);
+  --muted-foreground: var(--qp-text-muted);
+  --accent: var(--qp-hover);
+  --accent-foreground: var(--qp-text);
+  --border: var(--qp-border);
+  --input: var(--qp-border);
+
+  --color-background: var(--qp-bg);
+  --color-foreground: var(--qp-text);
+  --color-card: var(--qp-card);
+  --color-card-foreground: var(--qp-text);
+  --color-popover: var(--qp-secondary);
+  --color-popover-foreground: var(--qp-text);
+  --color-secondary: var(--qp-secondary);
+  --color-secondary-foreground: var(--qp-text);
+  --color-muted: var(--qp-hover);
+  --color-muted-foreground: var(--qp-text-muted);
+  --color-accent: var(--qp-hover);
+  --color-accent-foreground: var(--qp-text);
+  --color-border: var(--qp-border);
+  --color-input: var(--qp-border);
+}
+
+/* --qp-card is deliberately translucent; the playground pairs it with a blur,
+   so cards here get the same treatment (.bg-qp-card above can't apply — the
+   shadcn Card renders `bg-card`, not that class). */
+.theme-qp [data-slot="card"] {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
 .bg-qp-secondary {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);

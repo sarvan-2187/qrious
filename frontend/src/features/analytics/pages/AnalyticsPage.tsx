@@ -91,6 +91,7 @@ export const AnalyticsPage: React.FC = () => {
                 <option value="quantum-computing">Quantum Computing Core</option>
                 <option value="quantum-algorithms">Quantum Algorithms & Qiskit</option>
                 <option value="quantum-communication">Quantum Communication & QKD</option>
+                <option value="quantum-machine-learning">Quantum Machine Learning</option>
                 <option value="quantum-hardware">Quantum Hardware & Simulation</option>
               </select>
             </div>

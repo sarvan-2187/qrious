@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { DndContext } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { CircuitCanvas } from '../../gates-playground/components/CircuitCanvas';
@@ -33,8 +33,10 @@ type SubmitState = 'idle' | 'submitting' | 'polling' | 'success' | 'error';
 
 const QRoutePage: React.FC = () => {
   const { qubits, setQubits, cbits, setCbits, gates, addGate, setGates, qasm, updateQasm, updateGate, removeGate, expandMacroGate } =
-    useCircuitState(3);
+    useCircuitState(2);  // same 2q/2c starting circuit as Gates Playground
   const { exportQasm, importQasm } = useQasmApi();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { listProviders, listDevices, submitJob, getJobStatus, listJobs, error: apiError } = useQRouteApi();
 
   const [qasmError, setQasmError] = useState<string | null>(null);
@@ -81,6 +83,43 @@ const QRoutePage: React.FC = () => {
       }
     })();
     listJobs().then(setJobHistory).catch(() => {});
+  }, []);
+
+  // A circuit handed over by Gates Playground's "Real Hardware" button, as
+  // OpenQASM in router state. Order against the sync effect below doesn't
+  // matter: the import is async, so it always lands after the mount pass and
+  // replaces the empty-circuit default.
+  useEffect(() => {
+    const handoffQasm = (location.state as { qasm?: string } | null)?.qasm;
+    if (!handoffQasm) return;
+
+    // Consume it once. Router state is persisted in history.state, so without
+    // clearing it a refresh — or a Back into this page later — would silently
+    // re-import the old circuit over whatever the user has built since.
+    navigate('.', { replace: true, state: null });
+
+    // Load it through the same importQasm the editor uses, and let `gates`
+    // stay the source of truth: the sync effect below then regenerates the
+    // QASM from the parsed gates, so canvas and editor can't disagree.
+    importQasm(handoffQasm)
+      .then(({ gates: parsedGates, numQubits, numCbits }) => {
+        setGates(parsedGates);
+        setQubits(numQubits);
+        setCbits(numCbits);
+      })
+      .catch((err: any) => {
+        // Canvas can't mirror it — don't lose the circuit. Drop the pending
+        // empty-circuit export first, or it would land on top of this a moment
+        // later. Deliberately NOT setting isQasmEdit: gates never changed, so
+        // the sync effect stays idle until the user's next edit, and that edit
+        // should regenerate the QASM normally.
+        if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
+        updateQasm(handoffQasm);
+        setQasmError(
+          err.response?.data?.detail || err.message ||
+          'Could not rebuild this circuit on the canvas — the QASM is loaded, and you can still submit it.'
+        );
+      });
   }, []);
 
   // Same bi-directional gates<->QASM sync Gates Playground uses: instant
@@ -214,7 +253,7 @@ const QRoutePage: React.FC = () => {
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-auto bg-background text-foreground">
+      <div className="theme-qp flex flex-col h-[calc(100vh-3.5rem)] overflow-auto bg-background text-foreground">
         <div className="px-6 pt-4 pb-2 shrink-0">
           <h1 className="text-xl font-heading font-semibold flex items-center gap-2">
             <FaAtom className="text-primary" /> QRoute
