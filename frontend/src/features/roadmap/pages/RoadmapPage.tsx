@@ -362,7 +362,84 @@ export const RoadmapPage: React.FC = () => {
     }
   ];
 
-  const activeUnits = selectedDomain === 'quantum-communication' ? QUANTUM_COMMUNICATION_UNITS : UNITS;
+  // Seven units over the 41 MOOC lectures, split where the course itself
+  // changes subject (see the quantum-machine-learning block in
+  // backend/services/roadmap_seed.py). topPx is rendered from the first topic
+  // index at draw time (dynamicTopPx below), so these are the same START_Y +
+  // idx * Y_SPACING - 30 arithmetic, kept only to satisfy RoadmapUnit.
+  const QUANTUM_ML_UNITS: RoadmapUnit[] = [
+    {
+      id: 1,
+      title: "UNIT 1: QUANTUM FORMALISM FOR LEARNING",
+      subtitle: "Classical Probability, Quantum & Mixed States, Measurements, Closed & Open System Evolution.",
+      icon: <FaAtom className="text-xl text-emerald-500" />,
+      topicIndexes: [0, 1, 2, 3, 4, 5, 6, 7],
+      side: 'left',
+      topPx: 100
+    },
+    {
+      id: 2,
+      title: "UNIT 2: ISING MODELS & MANY-BODY PHYSICS",
+      subtitle: "Classical & Transverse Field Ising Models, plus Roger Melko's three-part many-body series.",
+      icon: <FaBookOpen className="text-xl text-emerald-500" />,
+      topicIndexes: [8, 9, 10, 11, 12],
+      side: 'right',
+      topPx: 1500
+    },
+    {
+      id: 3,
+      title: "UNIT 3: COMPUTING PARADIGMS & OPTIMIZATION",
+      subtitle: "Gate Model, Adiabatic Computing, Quantum Annealing, Implementations, QAOA & Thermal Sampling.",
+      icon: <FaRocket className="text-xl text-emerald-500" />,
+      topicIndexes: [13, 14, 15, 16, 17, 18],
+      side: 'left',
+      topPx: 2375
+    },
+    {
+      id: 4,
+      title: "UNIT 4: VARIATIONAL CIRCUITS & SIMULATION",
+      subtitle: "Alan Aspuru-Guzik's four-part series on variational algorithms and quantum simulation.",
+      icon: <FaGraduationCap className="text-xl text-emerald-500" />,
+      topicIndexes: [19, 20, 21, 22],
+      side: 'right',
+      topPx: 3425
+    },
+    {
+      id: 5,
+      title: "UNIT 5: ENCODING & LEARNING ALGORITHMS",
+      subtitle: "Encoding Classical Data, Ensembles, QBoost, Quantum Clustering, Kernels, Interference & Graphical Models.",
+      icon: <FaBookOpen className="text-xl text-emerald-500" />,
+      topicIndexes: [23, 24, 25, 26, 27, 28, 29, 30],
+      side: 'left',
+      topPx: 4125
+    },
+    {
+      id: 6,
+      title: "UNIT 6: QUANTUM-ENHANCED KERNEL METHODS",
+      subtitle: "Maria Schuld's three-part series on quantum feature maps and kernel estimation.",
+      icon: <FaCrown className="text-xl text-emerald-500" />,
+      topicIndexes: [31, 32, 33],
+      side: 'right',
+      topPx: 5525
+    },
+    {
+      id: 7,
+      title: "UNIT 7: QUANTUM LINEAR ALGEBRA",
+      subtitle: "QFT, Phase Estimation, HHL, Matrix Inversion, Learning Applications, Gaussian Processes & Seth Lloyd.",
+      icon: <FaGraduationCap className="text-xl text-emerald-500" />,
+      topicIndexes: [34, 35, 36, 37, 38, 39, 40],
+      side: 'left',
+      topPx: 6050
+    }
+  ];
+
+  const UNITS_BY_DOMAIN: Record<string, RoadmapUnit[]> = {
+    'quantum-communication': QUANTUM_COMMUNICATION_UNITS,
+    'quantum-machine-learning': QUANTUM_ML_UNITS,
+  };
+  // Falls back to the quantum-computing UNITS, which is what every domain
+  // without its own list got before.
+  const activeUnits = UNITS_BY_DOMAIN[selectedDomain] ?? UNITS;
 
   // Evenly Spaced 5-Node Curve Distribution (Zero Overlap at Bends)
   const CANVAS_WIDTH = 900;

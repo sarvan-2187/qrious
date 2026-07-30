@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -70,7 +71,7 @@ function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode, 
   const { currentUser, loading } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
-  
+
   useEffect(() => {
     if (!currentUser) {
       setRoleLoading(false);
@@ -89,6 +90,10 @@ function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode, 
           headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal
         });
+
+        // Artificial delay to let the Neko loading animation play
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         if (response.ok && isMounted) {
           const data = await response.json();
           setUserRole(data.role);
@@ -118,9 +123,10 @@ function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode, 
 
   if (loading || roleLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
-        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-foreground text-lg font-medium animate-pulse">Checking access...</p>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm">
+        <div className="flex flex-col items-center justify-center text-center">
+          <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
+        </div>
       </div>
     );
   }
