@@ -1727,6 +1727,260 @@ SEED_TOPICS: List[Dict[str, Any]] = [
                 }
             ]
         }
+    },
+    # --- QUANTUM MATHS ROADMAP ---
+    {
+        "slug": "maths-vector-spaces",
+        "title": "Complex Vector Spaces & Basis Vectors",
+        "domain": "quantum-maths",
+        "order_index": 1,
+        "prerequisites": [],
+        "estimated_minutes": 35,
+        "description": "Master complex vector spaces, linear independence, basis vectors, and dimensionality foundational to quantum state representation.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-maths-vectors",
+            "flashcard_category": "Quantum Mathematics",
+            "videos": [
+                {
+                    "title": "Linear Algebra for Quantum Computing: Vector Spaces",
+                    "url": "https://www.youtube.com/watch?v=mmibUFIep_s",
+                    "source": "Qrious Mathematics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "maths-dirac-bra-ket",
+        "title": "Dirac Bra-Ket Notation & Dual Spaces",
+        "domain": "quantum-maths",
+        "order_index": 2,
+        "prerequisites": ["maths-vector-spaces"],
+        "estimated_minutes": 30,
+        "description": "Master state vectors |ψ⟩, dual bras ⟨ψ|, state normalization, and probability amplitude projections.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-maths-dirac",
+            "flashcard_category": "Dirac Notation",
+            "videos": [
+                {
+                    "title": "Dirac Bra-Ket Notation & Dual Vector Spaces",
+                    "url": "https://www.youtube.com/watch?v=RyPQL8lccx4",
+                    "source": "Qrious Mathematics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "maths-inner-products",
+        "title": "Inner Products & Hilbert Spaces",
+        "domain": "quantum-maths",
+        "order_index": 3,
+        "prerequisites": ["maths-dirac-bra-ket"],
+        "estimated_minutes": 40,
+        "description": "Explore Hilbert space geometry, inner products ⟨φ|ψ⟩, orthogonality, vector norms, and the Cauchy-Schwarz inequality.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-maths-hilbert",
+            "flashcard_category": "Hilbert Spaces",
+            "videos": [
+                {
+                    "title": "Hilbert Spaces & Inner Product Geometry",
+                    "url": "https://www.youtube.com/watch?v=kT8O__Fl54I",
+                    "source": "Qrious Mathematics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "maths-matrices-operators",
+        "title": "Unitary, Hermitian & Spectral Operators",
+        "domain": "quantum-maths",
+        "order_index": 4,
+        "prerequisites": ["maths-inner-products"],
+        "estimated_minutes": 45,
+        "description": "Analyze matrix operators: Unitary operators (U†U = I) preserving state norms, Hermitian observables (H = H†), and Spectral decomposition.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-maths-operators",
+            "flashcard_category": "Quantum Operators",
+            "videos": [
+                {
+                    "title": "Unitary & Hermitian Operators in Quantum Mechanics",
+                    "url": "https://www.youtube.com/watch?v=dD-oYfhSKhg",
+                    "source": "Qrious Mathematics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "maths-outer-tensor-products",
+        "title": "Outer Products & Tensor Kronecker Products",
+        "domain": "quantum-maths",
+        "order_index": 5,
+        "prerequisites": ["maths-matrices-operators"],
+        "estimated_minutes": 40,
+        "description": "Formulate outer products |ψ⟩⟨φ|, projection operators, completeness relations, and Kronecker tensor products V ⊗ W for multi-qubit systems.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-maths-tensors",
+            "flashcard_category": "Tensor Algebra",
+            "videos": [
+                {
+                    "title": "Tensor Products & Multi-System Math",
+                    "url": "https://www.youtube.com/watch?v=85SoQ5f5dHk",
+                    "source": "Qrious Mathematics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "maths-complex-analysis",
+        "title": "Complex Numbers & Euler's Phase Formula",
+        "domain": "quantum-maths",
+        "order_index": 6,
+        "prerequisites": ["maths-outer-tensor-products"],
+        "estimated_minutes": 35,
+        "description": "Understand complex plane geometry, Euler's formula e^(iθ) = cos(θ) + i sin(θ), quantum relative phases, and global phase invariance.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-maths-complex",
+            "flashcard_category": "Complex Analysis",
+            "videos": [
+                {
+                    "title": "Euler's Formula & Quantum Phase Factor",
+                    "url": "https://www.youtube.com/watch?v=v0YEaeIClKY",
+                    "source": "Qrious Mathematics Series"
+                }
+            ]
+        }
+    },
+    # --- QUANTUM PHYSICS ROADMAP ---
+    {
+        "slug": "physics-wave-particle-duality",
+        "title": "Wave-Particle Duality & Photoelectric Effect",
+        "domain": "quantum-physics",
+        "order_index": 1,
+        "prerequisites": [],
+        "estimated_minutes": 35,
+        "description": "Explore the birth of quantum physics: Planck's radiation law, Einstein's photoelectric effect, and De Broglie matter waves (λ = h/p).",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-physics-duality",
+            "flashcard_category": "Quantum Physics",
+            "videos": [
+                {
+                    "title": "Wave-Particle Duality & De Broglie Wavelength",
+                    "url": "https://www.youtube.com/watch?v=Q_h4IoPJXZw",
+                    "source": "Qrious Physics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "physics-schrodinger-equation",
+        "title": "Schrödinger Equation & Wavefunctions",
+        "domain": "quantum-physics",
+        "order_index": 2,
+        "prerequisites": ["physics-wave-particle-duality"],
+        "estimated_minutes": 45,
+        "description": "Formulate time-dependent (iℏ ∂Ψ/∂t = HΨ) and time-independent Schrödinger differential equations, wavefunctions Ψ(x,t), and Born probability densities.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-physics-schrodinger",
+            "flashcard_category": "Schrödinger Equation",
+            "videos": [
+                {
+                    "title": "The Schrödinger Equation Derivation & Meaning",
+                    "url": "https://www.youtube.com/watch?v=uK60giWfBRU",
+                    "source": "Qrious Physics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "physics-uncertainty-principle",
+        "title": "Heisenberg Uncertainty Principle",
+        "domain": "quantum-physics",
+        "order_index": 3,
+        "prerequisites": ["physics-schrodinger-equation"],
+        "estimated_minutes": 40,
+        "description": "Analyze canonical commutation relations [x, p] = iℏ and Heisenberg's uncertainty relation Δx Δp ≥ ℏ/2.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-physics-uncertainty",
+            "flashcard_category": "Uncertainty Principle",
+            "videos": [
+                {
+                    "title": "Heisenberg Uncertainty Principle",
+                    "url": "https://www.youtube.com/watch?v=TOKMaFIGtGs",
+                    "source": "Qrious Physics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "physics-stern-gerlach",
+        "title": "Stern-Gerlach Experiment & Quantized Spin",
+        "domain": "quantum-physics",
+        "order_index": 4,
+        "prerequisites": ["physics-uncertainty-principle"],
+        "estimated_minutes": 40,
+        "description": "Examine the historic 1922 Stern-Gerlach beam deflection experiment demonstrating intrinsic electron angular momentum quantization.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-physics-stern-gerlach",
+            "flashcard_category": "Quantum Spin",
+            "videos": [
+                {
+                    "title": "Stern-Gerlach Experiment & Quantum Angular Momentum",
+                    "url": "https://www.youtube.com/watch?v=-66rprgwGNU",
+                    "source": "Qrious Physics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "physics-electron-spin",
+        "title": "Pauli Spin Matrices & Spin-1/2 Algebra",
+        "domain": "quantum-physics",
+        "order_index": 5,
+        "prerequisites": ["physics-stern-gerlach"],
+        "estimated_minutes": 45,
+        "description": "Study spin-1/2 state vectors, Pauli spin matrices (σx, σy, σz), spin commutation rules, and Bloch sphere spin orientation.",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-physics-pauli",
+            "flashcard_category": "Pauli Matrices",
+            "videos": [
+                {
+                    "title": "Pauli Matrices & Spin-1/2 Mechanics",
+                    "url": "https://www.youtube.com/watch?v=90za6mazNps",
+                    "source": "Qrious Physics Series"
+                }
+            ]
+        }
+    },
+    {
+        "slug": "physics-quantum-tunnelling",
+        "title": "Potential Wells & Quantum Tunnelling",
+        "domain": "quantum-physics",
+        "order_index": 6,
+        "prerequisites": ["physics-electron-spin"],
+        "estimated_minutes": 45,
+        "description": "Solve particle in a 1D box potential wells, finite square barriers, and non-zero barrier penetration transmission probabilities (quantum tunnelling).",
+        "content_refs": {
+            "lesson_ids": [],
+            "quiz_topic_tag": "quantum-physics-tunnelling",
+            "flashcard_category": "Quantum Tunnelling",
+            "videos": [
+                {
+                    "title": "Quantum Tunnelling & Potential Energy Barriers",
+                    "url": "https://www.youtube.com/watch?v=cTob6GgKHR8",
+                    "source": "Qrious Physics Series"
+                }
+            ]
+        }
     }
 ]
 

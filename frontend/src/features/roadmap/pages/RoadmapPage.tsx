@@ -12,7 +12,11 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+<<<<<<< HEAD
 import { useSearchParams } from 'react-router-dom';
+=======
+import { DomainSelector } from '../components/DomainSelector';
+>>>>>>> 6d1b778929b6eb8df158f11d878ac9eee73d14e0
 
 interface RoadmapUnit {
   id: number;
@@ -347,6 +351,48 @@ export const RoadmapPage: React.FC = () => {
     }
   ];
 
+  const QUANTUM_MATHS_UNITS: RoadmapUnit[] = [
+    {
+      id: 1,
+      title: "UNIT 1: LINEAR ALGEBRA & VECTOR SPACES",
+      subtitle: "Complex Vector Spaces, Dirac Bra-Ket Formalism & Hilbert Space Geometry.",
+      icon: <FaAtom className="text-xl text-emerald-500" />,
+      topicIndexes: [0, 1, 2],
+      side: 'left',
+      topPx: 40
+    },
+    {
+      id: 2,
+      title: "UNIT 2: MATRICES, OPERATORS & COMPLEX ANALYSIS",
+      subtitle: "Unitary & Hermitian Operators, Tensor Products & Euler's Phase Formula.",
+      icon: <FaBookOpen className="text-xl text-emerald-500" />,
+      topicIndexes: [3, 4, 5],
+      side: 'right',
+      topPx: 600
+    }
+  ];
+
+  const QUANTUM_PHYSICS_UNITS: RoadmapUnit[] = [
+    {
+      id: 1,
+      title: "UNIT 1: FOUNDATIONS OF QUANTUM MECHANICS",
+      subtitle: "Wave-Particle Duality, Schrödinger Equation & Heisenberg Uncertainty Principle.",
+      icon: <FaAtom className="text-xl text-emerald-500" />,
+      topicIndexes: [0, 1, 2],
+      side: 'left',
+      topPx: 40
+    },
+    {
+      id: 2,
+      title: "UNIT 2: EXPERIMENTAL PHYSICS & QUANTIZED SPIN",
+      subtitle: "Stern-Gerlach Experiment, Pauli Spin Matrices & Quantum Tunnelling.",
+      icon: <FaRocket className="text-xl text-emerald-500" />,
+      topicIndexes: [3, 4, 5],
+      side: 'right',
+      topPx: 600
+    }
+  ];
+
   const QUANTUM_COMMUNICATION_UNITS: RoadmapUnit[] = [
     {
       id: 1,
@@ -377,7 +423,13 @@ export const RoadmapPage: React.FC = () => {
     }
   ];
 
-  const activeUnits = selectedDomain === 'quantum-communication' ? QUANTUM_COMMUNICATION_UNITS : UNITS;
+  const activeUnits = selectedDomain === 'quantum-maths'
+    ? QUANTUM_MATHS_UNITS
+    : selectedDomain === 'quantum-physics'
+    ? QUANTUM_PHYSICS_UNITS
+    : selectedDomain === 'quantum-communication'
+    ? QUANTUM_COMMUNICATION_UNITS
+    : UNITS;
 
   // Evenly Spaced 5-Node Curve Distribution (Zero Overlap at Bends)
   const CANVAS_WIDTH = 900;
@@ -457,6 +509,8 @@ export const RoadmapPage: React.FC = () => {
   };
 
   const DOMAIN_FILTERS = [
+    { id: 'quantum-maths', label: 'Quantum Mathematics', isReady: true, countDesc: '6 Lessons' },
+    { id: 'quantum-physics', label: 'Quantum Physics', isReady: true, countDesc: '6 Lessons' },
     { id: 'quantum-computing', label: 'Quantum Computing', isReady: true, countDesc: '30 Lessons' },
     { id: 'quantum-communication', label: 'Quantum Communication', isReady: true, countDesc: '10 Lessons' },
     { id: 'quantum-machine-learning', label: 'Quantum Machine Learning', isReady: true, countDesc: '41 Lessons' },
@@ -470,6 +524,16 @@ export const RoadmapPage: React.FC = () => {
 
   const getDomainMetadata = (domain: string, totalStages: number) => {
     switch (domain) {
+      case 'quantum-maths':
+        return {
+          title: "Quantum Mathematics & Linear Algebra",
+          description: `Master complex vector spaces, Dirac bra-ket notation, Hilbert spaces, operators, and tensor algebra across ${totalStages || 6} interactive stages.`
+        };
+      case 'quantum-physics':
+        return {
+          title: "Quantum Physics & Wave Mechanics",
+          description: `Master wave-particle duality, the Schrödinger equation, Heisenberg uncertainty, Stern-Gerlach spin, and quantum tunnelling across ${totalStages || 6} interactive stages.`
+        };
       case 'quantum-communication':
         return {
           title: "Quantum Communication Roadmap",
@@ -478,7 +542,7 @@ export const RoadmapPage: React.FC = () => {
       case 'quantum-machine-learning':
         return {
           title: "Quantum Machine Learning Roadmap",
-          description: "Explore quantum state encoding, variational quantum circuits, Q-means, and hybrid QML algorithms."
+          description: `Explore quantum state encoding, variational quantum circuits, Q-means, and hybrid QML algorithms across ${totalStages || 41} interactive levels.`
         };
       case 'quantum-hardware':
         return {
@@ -564,47 +628,13 @@ export const RoadmapPage: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Quantum Domain Tracks Selector Bar (Horizontally Aligned) */}
-        <div className="flex flex-col gap-3">
-          <span className={cn("text-xs font-mono uppercase tracking-widest font-semibold", isDark ? "text-zinc-400" : "text-zinc-600")}>
-            Select Quantum Domain Track:
-          </span>
-          <div className="flex flex-wrap items-center gap-3.5 w-full">
-            {DOMAIN_FILTERS.map(dom => {
-              const isActive = selectedDomain === dom.id;
-              // Live count for the track currently loaded, otherwise the
-              // number advertised on the card ("6 Lessons" -> 6).
-              const declaredCount = parseInt(dom.countDesc, 10) || 0;
-              const domCount = isActive ? topics.length || declaredCount : declaredCount;
-              return (
-                <button
-                  key={dom.id}
-                  onClick={() => setSelectedDomain(dom.id)}
-                  className={cn(
-                    "px-5 py-3 rounded-2xl text-sm font-medium border flex items-center gap-3 transition-all duration-200 cursor-pointer shadow-sm active:scale-95 select-none",
-                    isActive
-                      ? "bg-emerald-500 border-emerald-400 text-white shadow-md shadow-emerald-500/25 scale-[1.02]"
-                      : isDark
-                        ? "bg-zinc-950/90 border-white/10 text-zinc-200 hover:border-emerald-500/50 hover:text-white"
-                        : "bg-white border-zinc-250 text-zinc-800 hover:border-emerald-500/50 hover:text-zinc-900 shadow-sm"
-                  )}
-                >
-                  <span className="font-sans font-semibold tracking-tight">{dom.label}</span>
-                  <span className={cn(
-                    "px-2.5 py-0.5 rounded-full font-mono text-xs font-semibold transition-colors",
-                    isActive
-                      ? "bg-black/25 text-white"
-                      : isDark
-                        ? "bg-zinc-900 text-zinc-400 border border-white/10"
-                        : "bg-zinc-100 text-zinc-700 border border-zinc-200"
-                  )}>
-                    {domCount}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Quantum Domain Tracks Selector Bar (With Prerequisite Locking) */}
+        <DomainSelector
+          selectedDomain={selectedDomain}
+          onSelectDomain={setSelectedDomain}
+          userXp={xpSummary?.xp_total || 150}
+          userPretestScore={85}
+        />
 
         {/* Level XP Progress Bar */}
         <XPBar xpSummary={xpSummary} loading={isLoading} />
@@ -728,7 +758,7 @@ export const RoadmapPage: React.FC = () => {
             </div>
 
             {/* Dedicated Unit Overview Side Cards (Enlarged & Prominent) */}
-            {activeUnits.map((unit) => {
+            {activeUnits.map((unit: RoadmapUnit) => {
               const unitTopics = filteredTopics.filter((_, idx) => unit.topicIndexes.includes(idx));
               const unitCompleted = unitTopics.filter(t => t.user_status === 'completed').length;
               const unitTotal = unitTopics.length;
