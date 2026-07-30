@@ -428,6 +428,68 @@ Three devices are confirmed live against a real Resonance account, each with a f
 
 **Status:** fully built and registered in `backend/services/quantum_providers/__init__.py`'s `PROVIDER_REGISTRY` — IQM Resonance shows up in QRoute's device picker automatically, no IQM-specific frontend code needed (`QRoutePage`/`QRouteJobDetailPage` render whatever the registry reports generically). **Runs locally via Docker only for this MVP** (port `8082`, following `qstudio_service`'s `8080`/`notebook_service`'s `8081` convention), not yet deployed to a cloud host — same posture as the other two services, and for the same reason: the Dockerfile is host-agnostic, so a real cloud deploy later is a config change, not a rewrite. One thing to budget for if that happens: `iqm-client[qiskit]` pulls in `pandas`/`xarray`/`opentelemetry`/`iqm-pulse` as mandatory dependencies, making this image noticeably larger than `qstudio_service`'s. See [`PLANS/iqm-service.md`](./PLANS/iqm-service.md) for the full design rationale and [`iqm_service/DEPLOYMENT.md`](./iqm_service/DEPLOYMENT.md) for how to actually run it.
 
+### Quantum Resource Optimizer (QRoute)
+
+A student building a circuit faces a question the device picker can't answer: **which of these backends should I actually run on?** Trapped-ion hardware has all-to-all connectivity but noisier entangling gates; superconducting hardware has cleaner gates but limited topology, so the transpiler inserts extra SWAPs. One is free with a 300-job queue; another charges per shot and is idle. The right answer depends on the circuit, not on a league table.
+
+The Resource Optimizer answers it by transpiling the circuit against **every** available device offline, scoring each, and — crucially — explaining the ranking in terms a learner can act on.
+
+```mermaid
+flowchart TD
+    classDef frontend fill:#dcfce7,stroke:#15803d,color:#14532d
+    classDef api fill:#dbeafe,stroke:#1e40af,color:#1e3a8a
+    classDef data fill:#fef08a,stroke:#a16207,color:#713f12
+    classDef external fill:#ede9fe,stroke:#6d28d9,color:#4c1d95
+
+    FE["Frontend<br/>RecommendationPanel"]:::frontend
+
+    subgraph OPT["backend/services/qroute/"]
+        CAP["device_capabilities.py<br/>cited error rates + calibration age"]:::data
+        ENG["resource_optimizer.py<br/>offline transpile · fidelity · cost"]:::api
+        CAP --> ENG
+    end
+
+    REG["PROVIDER_REGISTRY<br/>live device list + queue depth"]:::api
+    QISKIT["qiskit.transpile<br/>basis gates + coupling map<br/>NO network, NO credentials"]:::api
+
+    FE -->|"1 · POST /recommend {qasm, shots}"| ENG
+    REG -->|"2 · live pending_jobs"| CAP
+    ENG <-->|"3 · transpile per device"| QISKIT
+    ENG -->|"4 · ranked + explained"| FE
+```
+*🟩 frontend · 🟦 deployed API · 🟨 static cited data · merged live at request time*
+
+**Why it's fast enough to run on every click.** Scoring never touches a provider SDK. `qiskit.transpile(qc, basis_gates=[...], coupling_map=[...], optimization_level=3, seed_transpiler=7)` needs no credentials and no network, so ranking a dozen devices is pure local CPU work layered on top of the device list `GET /devices` already caches. The `seed_transpiler` is pinned deliberately: SABRE routing is stochastic by default, and a recommendation that changes between two identical clicks can't be explained to a student.
+
+**How a device is scored.** Each circuit is transpiled *twice* per device — once unrouted, once against the device's connectivity. The difference in entangling-gate count is the **routing overhead**, the single clearest demonstration of why topology matters, and invisible if you only transpile once. Expected fidelity is then the standard independent-error product:
+
+```
+F = (1 − e₁q)^n₁q × (1 − e₂q)^n₂q × (1 − e_readout)^n_measured
+```
+
+**This is an upper bound, and the code says so everywhere.** The model ignores T1/T2 decoherence, circuit duration, crosstalk, idle-qubit decay, and SPAM beyond a flat readout term. Every surface that displays it is required to label it (`≤ 94.3%`), because presenting it as a prediction would be the kind of quiet overclaim this feature exists to argue against.
+
+**A worked example of why this isn't a league table.** On a 3-qubit GHZ circuit, IonQ Forte-1 scores **0.9535** and IBM Torino **0.9453** — even though Forte's two-qubit error (1.5e-2) is roughly four times worse than Torino's (3.5e-3). GHZ has three measurements but only two entangling gates, so the readout term dominates and Forte's cleaner readout (5e-3 vs 1.5e-2) wins. Add more entangling gates and the ranking flips. A test pins this exact behaviour (`test_readout_error_can_dominate_a_shallow_circuit`) precisely because it looks wrong at a glance and isn't.
+
+**Scientific integrity constraints, enforced in code:**
+
+- **Never fabricate calibration data.** A device with no entry in the capability table is returned in a separate `unrated` list — never scored off invented numbers, and never silently dropped from the roster.
+- **Every error rate carries a citation** — `source`, `source_url`, and `published_date`.
+- **Calibration goes stale, and the UI says so.** IBM recalibrates roughly daily and devices drift, so `confidence()` derives a `high`/`medium`/`low` label purely from how old the cited numbers are.
+- **No invented uncertainty.** There is deliberately no `±3%` on any fidelity figure — published error rates carry no uncertainties to propagate, so inventing an interval would violate the same rule as inventing the rates. The real error bar comes from measurement (below).
+
+**The calibration loop — predicted vs measured.** Most tools predict fidelity. Very few then check. Every submitted job records its predicted fidelity, and qCompare already computes the *measured* divergence (total variation distance) between hardware counts and an ideal Aer simulation of the same circuit. Pairing them turns a heuristic into a model with a known error bar:
+
+```
+predicted fidelity ─┐
+                    ├─▶ MAE · RMSE · bias · Pearson r
+measured (1 − TVD) ─┘
+```
+
+Reported together on purpose: MAE is typical error size, RMSE punishes large misses, **bias** confirms the model is systematically optimistic (it should be — it's an upper bound), and **Pearson r** shows whether the model *ranks* devices correctly even when its absolute values are off. Ranking correctly is what choosing a backend actually needs. That measured MAE then becomes the honest uncertainty on future estimates — earned from real runs rather than assumed.
+
+**Status:** the data layer (`device_capabilities.py`) and scoring engine (`resource_optimizer.py`) are built and tested. The ranking layer, `POST /api/v1/qroute/recommend`, the `RecommendationPanel` UI, and the calibration endpoint/chart are **in progress** — see [`docs/superpowers/plans/2026-07-31-quantum-resource-optimizer.md`](./docs/superpowers/plans/2026-07-31-quantum-resource-optimizer.md) for the full task-by-task plan. Known gap: the `published_date` values in the capability table need verifying against each provider's live calibration page before they can be treated as real citations.
+
 ## Shipped Features Checklist
 
 A running record of what's actually built and verified, not just planned. Check the linked design doc / architecture section for status detail, caveats, and how to run each piece locally.

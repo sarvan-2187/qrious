@@ -13,6 +13,7 @@ import ResourceLibrary from './pages/ResourceLibrary';
 import VideoPlayerPage from './pages/VideoPlayerPage';
 import DocumentViewerPage from './pages/DocumentViewerPage';
 import NotFound from './pages/NotFound';
+import QuantumLibrary from './pages/QuantumLibrary';
 import CourseCatalog from './pages/CourseCatalog';
 import CourseDetail from './pages/CourseDetail';
 import EducatorDashboard from './pages/EducatorDashboard';
@@ -252,6 +253,11 @@ function App() {
                 <Route path="/playground/gates" element={
                   <ProtectedRoute>
                     <GatesPlaygroundPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/quantum-library" element={
+                  <ProtectedRoute>
+                    <QuantumLibrary />
                   </ProtectedRoute>
                 } />
                 <Route path="/puzzles" element={

@@ -26,7 +26,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { COPILOT_WIDTH } from '../constants/layout';
 
 const QASM_SYNC_DEBOUNCE_MS = 400;
-import { FaPlay, FaTrash, FaBug, FaSave, FaFolderOpen, FaDownload, FaUndo, FaRedo, FaExternalLinkAlt, FaSatelliteDish } from 'react-icons/fa';
+import { FaPlay, FaTrash, FaBug, FaSave, FaFolderOpen, FaDownload, FaUndo, FaRedo, FaExternalLinkAlt, FaSatelliteDish, FaBookOpen } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { qasmToGates } from '../utils/qasmParser';
@@ -125,6 +125,14 @@ const GatesPlaygroundPage: React.FC<GatesPlaygroundPageProps> = ({ initialQasm, 
           if (parsed.context) {
             setAlgorithmContext(parsed.context);
           }
+          // Overwrite the standard save slot so React strict mode double-mounts
+          // don't immediately revert to the old saved circuit.
+          sessionStorage.setItem('qrious_playground_saved_circuit', JSON.stringify({
+            gates: parsed.gates || [],
+            qubits: parsed.qubits || 2,
+            cbits: parsed.cbits || 2,
+            timestamp: Date.now()
+          }));
           sessionStorage.removeItem('qrious_playground_algorithm_transfer');
           return;
         }
@@ -586,7 +594,7 @@ const GatesPlaygroundPage: React.FC<GatesPlaygroundPageProps> = ({ initialQasm, 
             >
               <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
                 <FaExternalLinkAlt size={12} />
-                <span>Exploring Algorithm: <strong className="text-emerald-300">{algorithmContext}</strong></span>
+                <span>Exploring: <strong className="text-emerald-300">{algorithmContext}</strong></span>
               </div>
               <button 
                 onClick={() => setAlgorithmContext(null)}
@@ -708,6 +716,13 @@ const GatesPlaygroundPage: React.FC<GatesPlaygroundPageProps> = ({ initialQasm, 
                       </button>
                       <button onClick={handleRedo} className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm whitespace-nowrap">
                         <FaRedo className="w-2.5 h-2.5" /> Redo
+                      </button>
+                      <button
+                        onClick={() => navigate('/quantum-library')}
+                        className="col-span-3 flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-emerald-500 border-qp-border shadow-sm active:scale-95 whitespace-nowrap"
+                        title="Quantum Gate Library Reference"
+                      >
+                        <FaBookOpen className="w-3 h-3" /> Library
                       </button>
                     </div>
                   )}

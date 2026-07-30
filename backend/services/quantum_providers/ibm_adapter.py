@@ -46,10 +46,16 @@ class IbmAdapter(QuantumProviderAdapter):
     def list_devices(self) -> list[DeviceInfo]:
         devices = []
         for backend in self.service.backends():
+            # One status() call already gives BOTH operational and pending_jobs
+            # — the same field get_job_result already reads for status_detail,
+            # just fetched at selection time so the optimizer can rank on it.
             try:
-                operational = backend.status().operational
+                status = backend.status()
+                operational = status.operational
+                pending = status.pending_jobs
             except Exception:
                 operational = False
+                pending = None
             devices.append({
                 "id": backend.name,
                 "name": backend.name,
@@ -57,6 +63,8 @@ class IbmAdapter(QuantumProviderAdapter):
                 "modality": "superconducting",
                 "is_simulator": False,
                 "status": "AVAILABLE" if operational else "UNAVAILABLE",
+                "num_qubits": getattr(backend, "num_qubits", None),
+                "pending_jobs": pending,
             })
         return devices
 
