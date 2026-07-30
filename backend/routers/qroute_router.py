@@ -13,6 +13,7 @@ from database import get_db
 from routers.video_overview_router import QSTUDIO_SERVICE_SECRET, QSTUDIO_SERVICE_URL
 from services import qcompare_service
 from services.qiskit_service import ensure_measurements
+from services.qroute.resource_optimizer import DEFAULT_WEIGHTS, rank_devices
 from services.quantum_providers import InsufficientCreditsError, PROVIDER_REGISTRY, get_adapter
 
 router = APIRouter(prefix="/api/v1/qroute", tags=["QRoute — Multi-Provider Quantum Jobs"])
@@ -148,6 +149,68 @@ async def list_devices(provider: str | None = None, current_user: dict = Depends
         await asyncio.wait(pending, timeout=_DEVICE_FETCH_BUDGET_SECONDS)
 
     return [d for a in adapters for d in _device_cache.get(a.provider_id, {}).get("data", [])]
+
+
+class RecommendRequest(BaseModel):
+    qasm: str
+    shots: int = 1024
+    # Optional per-request override so the UI can offer "prioritise accuracy"
+    # vs "prioritise speed" without a second endpoint.
+    weights: dict[str, float] | None = None
+
+
+def _serialize_recommendation(rec) -> dict:
+    est = rec.estimate
+    return {
+        "device_key": est.device_key,
+        "provider": est.provider,
+        "device_id": est.device_id,
+        "device_name": est.device_name,
+        "score": rec.score,
+        "rationale": rec.rationale,
+        "factors": rec.factors,
+        "fits": est.fits,
+        "circuit_qubits": est.circuit_qubits,
+        "transpiled_depth": est.transpiled_depth,
+        "one_qubit_gates": est.one_qubit_gates,
+        "two_qubit_gates": est.two_qubit_gates,
+        "routing_overhead_2q": est.routing_overhead_2q,
+        "expected_fidelity": est.expected_fidelity,
+        "estimated_cost": est.estimated_cost,
+        "cost_unit": est.cost_unit,
+        "cost_basis": est.cost_basis,
+        "pending_jobs": est.pending_jobs,
+        "calibration_age_days": est.calibration_age_days,
+        "confidence": est.confidence,
+    }
+
+
+@router.post("/recommend")
+async def recommend_devices(
+    request: RecommendRequest, current_user: dict = Depends(get_current_user)
+):
+    """Ranks every available backend for THIS circuit.
+
+    Reuses list_devices() above rather than re-fetching, so it inherits the
+    same cache, the same per-provider refresh de-duplication, and the same
+    25s budget. Scoring itself is pure local transpilation — no provider calls
+    — so this endpoint adds negligible time on top of the device listing."""
+    devices = await list_devices(current_user=current_user)
+
+    try:
+        ranked, unrated = rank_devices(
+            request.qasm, request.shots, devices, request.weights
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Could not analyse this circuit's OpenQASM: {e}"
+        )
+
+    return {
+        "ranked": [_serialize_recommendation(r) for r in ranked],
+        "unrated": unrated,
+        "weights": request.weights or DEFAULT_WEIGHTS,
+    }
 
 
 @router.post("/jobs")
