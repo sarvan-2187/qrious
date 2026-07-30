@@ -28,6 +28,9 @@ import QRoutePage from './modules/qroute/pages/QRoutePage';
 import QRouteJobDetailPage from './modules/qroute/pages/QRouteJobDetailPage';
 import PuzzlesLandingPage from './modules/quantum-puzzles/pages/PuzzlesLandingPage';
 import PuzzlePage from './modules/quantum-puzzles/pages/PuzzlePage';
+import QForgeLandingPage from './modules/qforge/pages/QForgeLandingPage';
+import QForgeBuilderPage from './modules/qforge/pages/QForgeBuilderPage';
+import PlaygroundHubPage from './pages/PlaygroundHubPage';
 import BlochSphereVisualizer from './components/bloch/BlochSphereVisualizer';
 import AppLayout from './components/AppLayout';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -225,6 +228,11 @@ function App() {
                 {/* Quantathon Phase 1 Routes */}
                 <Route path="/playground" element={
                   <ProtectedRoute>
+                    <PlaygroundHubPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/playground/gates" element={
+                  <ProtectedRoute>
                     <GatesPlaygroundPage />
                   </ProtectedRoute>
                 } />
@@ -289,14 +297,16 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/qroute" element={
-                  <ProtectedRoute>
-                    <QRoutePage />
-                  </ProtectedRoute>
+                  <ProtectedRoute><QRoutePage /></ProtectedRoute>
                 } />
                 <Route path="/qroute/jobs/:jobId" element={
-                  <ProtectedRoute>
-                    <QRouteJobDetailPage />
-                  </ProtectedRoute>
+                  <ProtectedRoute><QRouteJobDetailPage /></ProtectedRoute>
+                } />
+                <Route path="/qforge" element={
+                  <ProtectedRoute><QForgeLandingPage /></ProtectedRoute>
+                } />
+                <Route path="/qforge/builder" element={
+                  <ProtectedRoute><QForgeBuilderPage /></ProtectedRoute>
                 } />
               </Route>
 

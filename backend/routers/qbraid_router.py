@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from auth import get_current_user
 from database import get_db
 from services.qbraid_service import qbraid_service
+from services.qiskit_service import ensure_measurements
 
 router = APIRouter(prefix="/api/v1/qbraid", tags=["qBraid Real Hardware"])
 
@@ -76,7 +77,12 @@ async def submit_job(request: QasmJobRequest, current_user: dict = Depends(get_c
         )
 
     try:
-        qbraid_job_qrn = qbraid_service.submit_job(request.qasm, request.device_id, request.shots)
+        qasm = ensure_measurements(request.qasm)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse this circuit's OpenQASM: {e}")
+
+    try:
+        qbraid_job_qrn = qbraid_service.submit_job(qasm, request.device_id, request.shots)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except RuntimeError as e:
@@ -91,7 +97,7 @@ async def submit_job(request: QasmJobRequest, current_user: dict = Depends(get_c
         "user_id": user_id,
         "device_id": request.device_id,
         "shots": request.shots,
-        "qasm": request.qasm,
+        "qasm": qasm,  # normalized — see ensure_measurements()
         "qbraid_job_qrn": qbraid_job_qrn,
         "status": "queued",
         "result": None,
