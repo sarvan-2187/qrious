@@ -16,9 +16,9 @@ const PlaygroundHubPage: React.FC = () => {
       icon: GripHorizontal,
     },
     {
-      title: 'Code Playground',
-      desc: 'Write Python (Qiskit) code directly in the browser and see real-time simulation output.',
-      href: '/playground/code',
+      title: 'QForge Hardware Simulator',
+      desc: 'Assemble a superconducting quantum computer stage-by-stage and manage thermal budgets.',
+      href: '/qforge',
       icon: Terminal,
     },
   ];
