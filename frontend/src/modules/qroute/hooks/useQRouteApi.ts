@@ -18,6 +18,42 @@ export interface QRouteDevice {
   status: string;
 }
 
+export interface RecommendationFactor {
+  sign: '+' | '-' | '~';
+  text: string;
+}
+
+export interface DeviceRecommendation {
+  device_key: string;
+  provider: string;
+  device_id: string;
+  device_name: string;
+  score: number;
+  rationale: string;
+  factors: RecommendationFactor[];
+  fits: boolean;
+  circuit_qubits: number;
+  transpiled_depth: number;
+  one_qubit_gates: number;
+  two_qubit_gates: number;
+  routing_overhead_2q: number;
+  // UPPER BOUND, not a prediction — always label it as such in the UI.
+  expected_fidelity: number;
+  estimated_cost: number;
+  cost_unit: string;
+  cost_basis: string;
+  pending_jobs: number | null;
+  calibration_age_days: number | null;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface RecommendResponse {
+  ranked: DeviceRecommendation[];
+  // Devices with no published calibration data — shown as "no data", never scored.
+  unrated: QRouteDevice[];
+  weights: Record<string, number>;
+}
+
 export type QRouteJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
 export interface QRouteJob {
@@ -92,6 +128,24 @@ export const useQRouteApi = () => {
       setLoading(false);
     }
   }, []);
+
+  const recommendDevices = useCallback(
+    async (qasm: string, shots: number, weights?: Record<string, number>): Promise<RecommendResponse> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await apiClient.post('/api/v1/qroute/recommend', { qasm, shots, weights });
+        return response.data;
+      } catch (err: any) {
+        const errorMsg = err.response?.data?.detail || err.message || 'Failed to rank backends';
+        setError(errorMsg);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const submitJob = useCallback(
     async (provider: string, deviceId: string, qasm: string, shots: number): Promise<QRouteJob> => {
@@ -186,7 +240,7 @@ export const useQRouteApi = () => {
   }, []);
 
   return {
-    listProviders, listDevices, submitJob, getJobStatus, listJobs,
+    listProviders, listDevices, recommendDevices, submitJob, getJobStatus, listJobs,
     runQCompare, getQCompare, runQCompareAudio, runQCompareAnimation,
     loading, error,
   };
