@@ -19,5 +19,5 @@ cd backend
 python -m venv venv
 .\venv\Scripts\Activate
 pip install -r requirements.txt
-fastapi dev main.py
+uvicorn main:app --reload
 ```
