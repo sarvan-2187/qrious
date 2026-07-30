@@ -76,6 +76,13 @@ def test_live_override_ignores_keys_it_does_not_own():
     assert cap["err_2q"] < 0.5
 
 
+def test_live_zero_pending_jobs_survives_the_merge():
+    # 0 is meaningful — an idle queue is the BEST case, not a missing value.
+    # Guards against the guard being "simplified" to a truthy check.
+    cap = get_capability("ibm", "ibm_torino", live={"pending_jobs": 0})
+    assert cap["pending_jobs"] == 0
+
+
 if __name__ == "__main__":
     test_device_key_matches_frontend_convention()
     test_known_hardware_has_cited_error_rates()
@@ -86,4 +93,5 @@ if __name__ == "__main__":
     test_unknown_device_returns_none_rather_than_inventing_numbers()
     test_live_data_overrides_static_queue_depth()
     test_live_override_ignores_keys_it_does_not_own()
+    test_live_zero_pending_jobs_survives_the_merge()
     print("ok")
