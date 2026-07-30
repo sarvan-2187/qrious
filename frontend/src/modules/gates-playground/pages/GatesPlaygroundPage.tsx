@@ -22,11 +22,11 @@ import { useQuantumExecuteApi } from '../hooks/useQuantumExecuteApi';
 import { LanguageSelector } from '../components/LanguageSelector';
 import type { Language } from '../components/LanguageSelector';
 import { useAlgorithmApi } from '../../algorithm-explorer/hooks/useAlgorithmApi';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { COPILOT_WIDTH } from '../constants/layout';
 
 const QASM_SYNC_DEBOUNCE_MS = 400;
-import { FaPlay, FaTrash, FaBug, FaSave, FaFolderOpen, FaDownload, FaUndo, FaRedo, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaPlay, FaTrash, FaBug, FaSave, FaFolderOpen, FaDownload, FaUndo, FaRedo, FaExternalLinkAlt, FaSatelliteDish } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { qasmToGates } from '../utils/qasmParser';
@@ -68,6 +68,7 @@ const GatesPlaygroundPage: React.FC = () => {
   const [pythonCode, setPythonCode] = useState(QISKIT_BOILERPLATE);
   const { getAlgorithm } = useAlgorithmApi();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [debugTrace, setDebugTrace] = useState<any[] | null>(null);
   const [qasmError, setQasmError] = useState<string | null>(null);
@@ -181,6 +182,18 @@ const GatesPlaygroundPage: React.FC = () => {
   };
 
   // Export Handler — .qasm for QASM, .py for Qiskit
+  // Hands the current circuit to QRoute, which owns every real-hardware
+  // provider. It travels as OpenQASM in router state — the interchange format
+  // both pages already round-trip through — rather than by moving either page:
+  // /qroute and /qroute/jobs/:id keep their URLs, so the links in job-completion
+  // emails (backend/services/qroute_notifier.py) keep resolving.
+  //
+  // Always QASM, whatever the editor is currently showing: `gates` is the
+  // source of truth in every language mode, and providers only take QASM.
+  const handleSendToHardware = () => {
+    navigate('/qroute', { state: { qasm: qasm || gatesToQasm(gates, qubits, cbits) } });
+  };
+
   const handleExport = () => {
     let content: string;
     let filename: string;
@@ -658,6 +671,17 @@ const GatesPlaygroundPage: React.FC = () => {
                   >
                     <FaPlay className="w-2.5 h-2.5 shrink-0" />
                     {simLoading || execLoading || quantumLoading ? 'Running...' : 'Run'}
+                  </button>
+
+                  <button
+                    onClick={handleSendToHardware}
+                    disabled={gates.length === 0}
+                    title={gates.length === 0
+                      ? 'Add at least one gate before sending this circuit to real hardware'
+                      : 'Open this circuit in QRoute to run it on real quantum hardware'}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all text-xs border bg-qp-card hover:bg-qp-hover text-qp-text border-qp-border shadow-sm disabled:opacity-30 disabled:hover:bg-qp-card active:scale-95 whitespace-nowrap"
+                  >
+                    <FaSatelliteDish className="w-3 h-3 text-emerald-400" /> Real Hardware
                   </button>
 
                   {/* Row 3: Export | Undo | Redo */}

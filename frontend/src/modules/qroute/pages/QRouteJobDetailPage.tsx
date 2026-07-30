@@ -123,7 +123,7 @@ const QRouteJobDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] text-muted-foreground text-sm gap-2">
+      <div className="theme-qp flex items-center justify-center h-[calc(100vh-3.5rem)] text-muted-foreground text-sm gap-2">
         <FaCircleNotch className="animate-spin" /> Loading job...
       </div>
     );
@@ -131,7 +131,7 @@ const QRouteJobDetailPage: React.FC = () => {
 
   if (notFound || !job) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-3.5rem)] gap-3 text-muted-foreground">
+      <div className="theme-qp flex flex-col items-center justify-center h-[calc(100vh-3.5rem)] gap-3 text-muted-foreground">
         <p className="text-sm">Job not found, or you don't have access to it.</p>
         <Link to="/qroute" className="text-sm text-primary hover:underline">
           &larr; Back to QRoute
@@ -147,7 +147,7 @@ const QRouteJobDetailPage: React.FC = () => {
     : null;
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] overflow-auto bg-background text-foreground px-6 py-4">
+    <div className="theme-qp h-[calc(100vh-3.5rem)] overflow-auto bg-background text-foreground px-6 py-4">
       <Link to="/qroute" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
         <FaArrowLeft className="w-3 h-3" /> Back to QRoute
       </Link>
