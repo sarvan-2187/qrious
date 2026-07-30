@@ -6,12 +6,14 @@ import { TopicNotesModal } from '@/features/notes/components/TopicNotesModal';
 import { 
   FaTimes, FaPlay, FaCheckCircle, FaClock, FaQuestionCircle, 
   FaLayerGroup, FaStickyNote, FaLock, 
-  FaFilePdf, FaDownload, FaTv, FaRedo, FaTrophy, FaRocket, FaArrowRight
+  FaFilePdf, FaDownload, FaTv, FaRedo, FaTrophy, FaRocket, FaArrowRight, FaBrain
 } from 'react-icons/fa';
 import { toast } from 'sonner';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { generateLessonPdf } from '../utils/generateLessonPdf';
+import { ScheduleReviewModal } from '@/components/ScheduleReviewModal';
+import { apiClient as api } from '@/lib/apiClient';
 
 interface TopicDetailModalProps {
   topic: RoadmapTopic | null;
@@ -63,6 +65,9 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
   const [currentTopic, setCurrentTopic] = useState<RoadmapTopic | null>(topic);
   const [accumulatedSeconds, setAccumulatedSeconds] = useState<number>(0);
 
+  // Notes Sidebar State
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+
   // Active Stage Tab
   const [activeStageTab, setActiveStageTab] = useState<StageTab>('video');
 
@@ -84,6 +89,8 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
     notes?: boolean;
     slides?: boolean;
   }>({});
+  const [isMarkingReview, setIsMarkingReview] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   useEffect(() => {
     if (!topic) return;
@@ -267,11 +274,35 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
     }
   };
 
+  const handleMarkForReview = async (date: string) => {
+    if (!currentTopic) return;
+    try {
+      setIsMarkingReview(true);
+      await api.post('/api/v1/reviews/mark', {
+        target_id: currentTopic.slug,
+        target_type: 'roadmap',
+        title: currentTopic.title,
+        scheduled_date: date
+      });
+      toast.success('Marked for review', { duration: 1000 });
+      window.dispatchEvent(new Event('review_marked'));
+    } catch (err: any) {
+      if (err.response?.data?.message === "Already marked for review") {
+        toast.info(`"${currentTopic.title}" is already scheduled.`);
+      } else {
+        toast.error('Failed to schedule review');
+      }
+    } finally {
+      setIsMarkingReview(false);
+    }
+  };
+
   const pdfSlideUrl = ['quantum-computation-overview', 'review-linear-algebra', 'dirac-notation', 'hilbert-spaces-inner-product', 'qcomm-foundations-recap', 'qcomm-no-cloning-theorem'].includes(slug)
     ? `/slides/${slug}.pdf`
     : `https://qrious-quantum.s3.amazonaws.com/materials/${slug}-slides.pdf`;
 
   return (
+    <>
     <div
       onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/40 backdrop-blur-md animate-fade-in font-sans cursor-pointer overflow-hidden"
@@ -317,6 +348,18 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              disabled={isMarkingReview}
+              className={cn(
+                "px-3 py-1.5 rounded-xl border flex items-center justify-center transition-colors cursor-pointer text-xs font-mono font-medium gap-1.5 shadow-sm shrink-0",
+                isDark ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20" : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+              )}
+              title="Add to Spaced Repetition Daily Reviews"
+            >
+              <FaBrain className="text-sm" />
+              <span className="hidden sm:inline">Mark for Review</span>
+            </button>
             {/* Modal Close Button */}
             <button
               onClick={onClose}
@@ -335,7 +378,8 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
           
           {/* 🖥️ LEFT MAIN STAGE (3/4 WIDTH ~ 75%) */}
           <div className={cn(
-            "lg:w-[75%] flex flex-col border-r overflow-hidden min-h-[420px]",
+            isEditingNotes ? "lg:w-[55%]" : "lg:w-[75%]",
+            "flex flex-col border-r overflow-hidden min-h-[420px] transition-all duration-300",
             isDark ? "border-white/10 bg-black/80" : "border-zinc-200 bg-zinc-50"
           )}>
             {/* Stage Top Navigation Bar */}
@@ -381,10 +425,10 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
                 </button>
 
                 <button
-                  onClick={() => setActiveStageTab('notes')}
+                  onClick={() => setIsEditingNotes(!isEditingNotes)}
                   className={cn(
                     "px-3.5 py-1.5 rounded-xl text-xs font-mono font-medium flex items-center gap-2 transition-all cursor-pointer",
-                    activeStageTab === 'notes'
+                    isEditingNotes
                       ? "bg-emerald-500 text-white shadow"
                       : isDark ? "bg-zinc-900 text-zinc-400 hover:text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900"
                   )}
@@ -411,11 +455,17 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
             </div>
 
             {/* Stage Viewer Area */}
-            <div className="flex-1 relative overflow-hidden flex flex-col justify-center items-center p-4">
+            <div className={cn(
+              "flex-1 relative overflow-hidden p-4",
+              activeStageTab === 'notes' ? "flex flex-row gap-4 items-stretch" : "flex flex-col justify-center items-center"
+            )}>
               
               {/* TAB 1: 🎥 VIDEO PLAYER */}
-              {activeStageTab === 'video' && (
-                <div className="w-full h-full flex flex-col">
+              {(activeStageTab === 'video' || activeStageTab === 'notes') && (
+                <div className={cn(
+                  "h-full flex flex-col",
+                  activeStageTab === 'notes' ? "w-[60%]" : "w-full"
+                )}>
                   {canWatchVideo && selectedVideo ? (
                     <div className={cn("relative w-full h-full rounded-2xl overflow-hidden shadow-2xl flex flex-col border", isDark ? "bg-black border-white/10" : "bg-white border-zinc-200")}>
                       <iframe
@@ -625,34 +675,7 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
                 </div>
               )}
 
-              {/* TAB 4: 📝 TOPIC NOTES */}
-              {activeStageTab === 'notes' && (
-                <div className={cn(
-                  "w-full h-full max-w-3xl border rounded-2xl p-6 sm:p-8 flex flex-col my-auto shadow-2xl overflow-y-auto",
-                  isDark ? "bg-zinc-950 border-white/10 text-white" : "bg-white border-zinc-200 text-zinc-900"
-                )}>
-                  <div className={cn("flex items-center justify-between pb-4 border-b mb-4", isDark ? "border-white/10" : "border-zinc-200")}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center text-xl">
-                        <FaStickyNote />
-                      </div>
-                      <div>
-                        <h3 className={cn("text-lg font-sans font-normal", isDark ? "text-white" : "text-zinc-900")}>{title} Personal Notes</h3>
-                        <span className="text-[10px] font-mono text-emerald-500 font-medium">Markdown Editor & Sync</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="flex-1 min-h-[300px]">
-                    <TopicNotesModal
-                      topicSlug={slug}
-                      topicTitle={title}
-                      isOpen={true}
-                      onClose={() => setActiveStageTab('video')}
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* TAB 5: 📄 SLIDES & PDF */}
               {activeStageTab === 'slides' && (
@@ -685,21 +708,34 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
             </div>
           </div>
 
-          {/* 🎛️ RIGHT CONTROL SIDEBAR (1/4 WIDTH ~ 25%) */}
+          {/* 🎛️ RIGHT CONTROL SIDEBAR */}
           <div className={cn(
-            "lg:w-[25%] p-5 sm:p-6 flex flex-col justify-between overflow-y-auto min-w-[280px]",
+            isEditingNotes ? "lg:w-[45%]" : "lg:w-[25%]",
+            "flex p-5 sm:p-6 flex-col justify-between overflow-y-auto min-w-[280px] transition-all duration-300",
             isDark ? "bg-zinc-950/90 text-white" : "bg-white text-zinc-900"
           )}>
             <div className="space-y-6">
-              {/* Topic Overview */}
-              <div>
-                <h4 className={cn("text-xs font-mono uppercase tracking-wider mb-2", isDark ? "text-zinc-400" : "text-zinc-600")}>
-                  Topic Description
-                </h4>
-                <p className={cn("text-xs leading-relaxed font-sans", isDark ? "text-zinc-300" : "text-zinc-700")}>
-                  {description}
-                </p>
-              </div>
+              {/* Topic Overview / Notes Editor */}
+              {isEditingNotes ? (
+                <div className="flex-1 flex flex-col min-h-[400px]">
+                  <TopicNotesModal
+                    topicSlug={slug}
+                    topicTitle={title}
+                    isOpen={true}
+                    inline={true}
+                    onClose={() => setIsEditingNotes(false)}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <h4 className={cn("text-xs font-mono uppercase tracking-wider mb-2", isDark ? "text-zinc-400" : "text-zinc-600")}>
+                    Topic Description
+                  </h4>
+                  <p className={cn("text-xs leading-relaxed font-sans", isDark ? "text-zinc-300" : "text-zinc-700")}>
+                    {description}
+                  </p>
+                </div>
+              )}
 
               {/* Interactive Study Tools (Live 3/4 Stage Switcher) */}
               <div className="space-y-2">
@@ -802,10 +838,10 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
                 </button>
 
                 <button
-                  onClick={() => setActiveStageTab('notes')}
+                  onClick={() => setIsEditingNotes(!isEditingNotes)}
                   className={cn(
                     "w-full p-2.5 sm:p-3 rounded-xl border flex items-center justify-between gap-2 text-xs font-sans font-medium transition-all text-left cursor-pointer group",
-                    activeStageTab === 'notes'
+                    isEditingNotes
                       ? (isDark ? "bg-emerald-500/10 border-emerald-500 text-emerald-400" : "bg-emerald-50 border-emerald-300 text-emerald-700")
                       : isDark ? "bg-black border-white/10 text-zinc-300 hover:border-emerald-500/40" : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                   )}
@@ -935,5 +971,12 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
 
       </div>
     </div>
+    <ScheduleReviewModal 
+      isOpen={showScheduleModal}
+      onClose={() => setShowScheduleModal(false)}
+      onConfirm={handleMarkForReview}
+      itemName={title}
+    />
+    </>
   );
 };

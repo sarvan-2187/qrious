@@ -13,13 +13,15 @@ interface TopicNotesModalProps {
   topicTitle: string;
   isOpen: boolean;
   onClose: () => void;
+  inline?: boolean;
 }
 
 export const TopicNotesModal: React.FC<TopicNotesModalProps> = ({
   topicSlug,
   topicTitle,
   isOpen,
-  onClose
+  onClose,
+  inline = false
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -304,6 +306,55 @@ export const TopicNotesModal: React.FC<TopicNotesModalProps> = ({
   }
 
   // Standard Center Modal Mode Render
+  if (inline) {
+    return (
+      <div className={cn(
+        "w-full h-full flex flex-col font-sans",
+        isDark ? "text-white" : "text-zinc-900"
+      )}>
+        {/* Modal Header */}
+        <div className={cn(
+          "flex items-center justify-between pb-4 border-b mb-4 shrink-0",
+          isDark ? "border-white/10" : "border-zinc-200"
+        )}>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-10 h-10 rounded-2xl border flex items-center justify-center text-lg shadow-sm",
+              isDark ? "bg-black border-white/10 text-emerald-400" : "bg-zinc-50 border-zinc-200 text-emerald-600"
+            )}>
+              <FaStickyNote />
+            </div>
+            <div>
+              <h2 className="text-xl font-sans tracking-tight">{topicTitle} Notes</h2>
+              <span className="text-[10px] font-mono text-emerald-500 uppercase font-semibold">Personal Topic Notebook</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsFloating(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium flex items-center gap-1.5 transition-colors shadow-sm"
+              title="Pop out as floating draggable window"
+            >
+              <FaExpandAlt className="text-xs" /> Pop Out Window
+            </button>
+            <button
+              onClick={onClose}
+              className={cn(
+                "w-9 h-9 rounded-full border flex items-center justify-center transition-colors",
+                isDark ? "bg-black border-white/10 text-zinc-400 hover:text-white" : "bg-zinc-100 border-zinc-200 text-zinc-600 hover:text-zinc-900"
+              )}
+            >
+              <FaTimes className="text-sm" />
+            </button>
+          </div>
+        </div>
+
+        {modalBody}
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-fade-in font-sans">
       <div className={cn(
