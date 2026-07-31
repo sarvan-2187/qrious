@@ -84,9 +84,8 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
 
   const overallScore = useMemo(() => {
     if (algorithms.length === 0) return 0;
-    const explored = getExploredSlugs();
-    return Math.round((explored.size / algorithms.length) * 100);
-  }, [algorithms]);
+    return Math.round((totalExplored / algorithms.length) * 100);
+  }, [algorithms, totalExplored]);
 
   // Find closest milestone (domain where score is highest but < 100%)
   const closestMilestone = useMemo(() => {

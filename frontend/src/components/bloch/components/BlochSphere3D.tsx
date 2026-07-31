@@ -216,19 +216,19 @@ function SphereScene({
       <Line points={[[0, 0, -1.22], [0, 0, 1.22]]} color="#64748b" lineWidth={1.0} />
 
       {/* ── Labels — plain bold text, NO glow, theme-aware via Tailwind ── */}
-      <Text position={[0, 1.46, 0]} color={isDark ? '#e2e8f0' : '#1e293b'} fontSize={0.16} anchorX="center" anchorY="middle">
+      <Text position={[0, 1.46, 0]} color={isDark ? '#ffffff' : '#000000'} fontSize={0.16} anchorX="center" anchorY="middle" material-type="MeshBasicMaterial">
         {topStateText}
       </Text>
 
-      <Text position={[0, -1.46, 0]} color={isDark ? '#e2e8f0' : '#1e293b'} fontSize={0.16} anchorX="center" anchorY="middle">
+      <Text position={[0, -1.46, 0]} color={isDark ? '#ffffff' : '#000000'} fontSize={0.16} anchorX="center" anchorY="middle" material-type="MeshBasicMaterial">
         {bottomStateText}
       </Text>
 
-      <Text position={[1.38, 0.06, 0]} color={isDark ? '#94a3b8' : '#64748b'} fontSize={0.12} anchorX="center" anchorY="middle">
+      <Text position={[1.38, 0.06, 0]} color={isDark ? '#e2e8f0' : '#334155'} fontSize={0.12} anchorX="center" anchorY="middle" material-type="MeshBasicMaterial">
         x
       </Text>
 
-      <Text position={[0, 0.06, 1.38]} color={isDark ? '#94a3b8' : '#64748b'} fontSize={0.12} anchorX="center" anchorY="middle">
+      <Text position={[0, 0.06, 1.38]} color={isDark ? '#e2e8f0' : '#334155'} fontSize={0.12} anchorX="center" anchorY="middle" material-type="MeshBasicMaterial">
         y
       </Text>
 
