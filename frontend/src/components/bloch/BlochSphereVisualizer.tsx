@@ -81,6 +81,7 @@ export const BlochSphereVisualizer: React.FC = () => {
   const [isRecordingGif, setIsRecordingGif] = useState(false);
   const [isProcessingGif, setIsProcessingGif] = useState(false);
   const gifRef = useRef<GIF | null>(null);
+  const gifFrameCountRef = useRef(0);
 
   const [aiTutorOpen, setAiTutorOpen] = useState(false);
   const [isCatInCopilot, setIsCatInCopilot] = useState(false);
@@ -258,6 +259,7 @@ export const BlochSphereVisualizer: React.FC = () => {
       setIsProcessingGif(false);
     });
 
+    gifFrameCountRef.current = 0;
     setIsRecordingGif(true);
     toast.info('Recording started! Apply gates now. Click "Stop Recording" when done.', { duration: 5000 });
   };
@@ -265,9 +267,10 @@ export const BlochSphereVisualizer: React.FC = () => {
   const handleGifFrame = (canvas: HTMLCanvasElement) => {
     if (gifRef.current && isRecordingGif) {
       gifRef.current.addFrame(canvas, { delay: 50, copy: true });
-      
+      gifFrameCountRef.current += 1;
+
       // Safety limit: if someone records too long, auto-stop to prevent memory crash
-      if (gifRef.current.frames.length >= 200) {
+      if (gifFrameCountRef.current >= 200) {
         startGifRecording(); // Auto-stop recording
         toast.info('Maximum GIF length reached. Stopping recording...');
       }

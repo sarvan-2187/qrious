@@ -17,6 +17,7 @@ class SimulationRequest(BaseModel):
     num_cbits: Optional[int] = None
     gates: Optional[List[dict]] = None
     shots: int = 1024
+    noisy: Optional[bool] = False
 
 class BlochVector(BaseModel):
     x: float

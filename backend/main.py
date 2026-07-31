@@ -251,6 +251,7 @@ from routers.bloch_router import router as bloch_router
 from routers.quantum_execution_router import router as quantum_execution_router
 from routers.qforge_router import router as qforge_router
 from routers.reviews import router as reviews_router
+from routers.quantum_optimizer import router as quantum_optimizer_router
 
 app.include_router(accounts_router)
 app.include_router(educator_router)
@@ -283,3 +284,4 @@ app.include_router(ai_gateway_router)
 app.include_router(bloch_router)
 app.include_router(quantum_execution_router)
 app.include_router(qforge_router)
+app.include_router(quantum_optimizer_router)
