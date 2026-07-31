@@ -19,7 +19,8 @@ async def list_algorithms(current_user: dict = Depends(get_current_user)):
         "difficulty": a.get("quickInfo", {}).get("difficulty", ""),
         "category": a.get("quickInfo", {}).get("category", ""),
         "learningLevel": a.get("level", 1),
-        "status": a.get("status", "active")
+        "status": a.get("status", "active"),
+        "relatedAlgorithms": a.get("quickInfo", {}).get("relatedAlgorithms", [])
     } for a in algs]
 
 @router.get("/{slug}", response_model=AlgorithmBase)
