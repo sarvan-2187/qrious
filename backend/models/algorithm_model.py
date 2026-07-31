@@ -58,3 +58,4 @@ class AlgorithmSummary(BaseModel):
     category: str
     learningLevel: int
     status: str = "active"
+    relatedAlgorithms: List[str] = []
