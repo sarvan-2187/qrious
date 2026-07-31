@@ -120,7 +120,7 @@ export default function CourseCatalog() {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer border whitespace-nowrap ${
                   selectedCategory === cat.id
-                    ? 'bg-purple-600/20 text-purple-300 border-purple-500/50 shadow-sm shadow-purple-500/20'
+                    ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/50 shadow-sm shadow-emerald-500/20'
                     : 'bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted hover:text-foreground'
                 }`}
               >
@@ -145,17 +145,17 @@ export default function CourseCatalog() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {/* Render Backend Published Courses */}
               {filteredPublishedCourses.map(c => (
-                <Card key={c.id} className="hover:shadow-lg transition-all border-purple-500/30 bg-card/80 backdrop-blur hover:border-purple-500/60 group">
+                <Card key={c.id} className="hover:shadow-lg transition-all border-emerald-500/30 bg-card/80 backdrop-blur hover:border-emerald-500/60 group">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary" className="text-xs bg-purple-500/10 text-purple-300 border-purple-500/30">
+                      <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
                         {c.category ? `${c.category} Engineering` : 'Quantum Course'}
                       </Badge>
                       <Badge variant="outline" className="text-xs text-muted-foreground">
                         {c.level || 'Interactive'}
                       </Badge>
                     </div>
-                    <CardTitle className="text-lg group-hover:text-purple-300 transition-colors">
+                    <CardTitle className="text-lg group-hover:text-emerald-300 transition-colors">
                       <Link to={`/courses/${c.id}`} className="hover:underline">{c.title}</Link>
                     </CardTitle>
                   </CardHeader>
@@ -172,7 +172,7 @@ export default function CourseCatalog() {
                     )}
                     <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/40">
                       <span>⏱️ {c.duration || 'Self-Paced'}</span>
-                      <Link to={`/courses/${c.id}`} className="font-semibold text-purple-400 group-hover:translate-x-1 transition-transform inline-flex items-center">
+                      <Link to={`/courses/${c.id}`} className="font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform inline-flex items-center">
                         Explore Course <span className="ml-1">→</span>
                       </Link>
                     </div>
