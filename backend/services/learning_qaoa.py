@@ -196,6 +196,13 @@ def optimize_learning_path(candidates: List[Dict[str, Any]], max_session_minutes
         selected = [c for c, bit in zip(candidates, bits) if bit]
         total_time, total_value = _summarize_selection(selected)
 
+        if total_time > max_session_minutes:
+            # The QUBO's budget term is a soft penalty (discourages drifting from
+            # the budget, doesn't forbid it) -- QAOA can still land on an
+            # over-budget bitstring. Reject it and use the budget-safe greedy
+            # result instead, rather than returning an infeasible "optimized" plan.
+            return _fallback_result(candidates, max_session_minutes)
+
         return {
             "algorithm": "QAOA (p=1)",
             "bitstring": best_bitstring,

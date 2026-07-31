@@ -127,6 +127,20 @@ def test_optimize_learning_path_falls_back_on_simulator_failure():
     assert result["total_estimated_time"] <= 45
 
 
+def test_optimize_learning_path_rejects_qaoa_result_that_exceeds_budget():
+    """The QUBO's budget term only softly penalizes overshooting -- QAOA can still
+    land on an over-budget bitstring. optimize_learning_path must reject it and
+    fall back to the budget-safe greedy result instead of returning it as-is."""
+    candidates = _candidates()  # times 20+15+30+10 = 75, all over a 45-min budget
+    fake_result = {"probabilities": {"1111": 1.0}}  # forces "select everything"
+    with patch.object(learning_qaoa.qiskit_service, "run_simulation", return_value=fake_result):
+        result = optimize_learning_path(candidates, max_session_minutes=45)
+
+    assert result["fallback_used"] is True
+    assert result["algorithm"].startswith("Greedy")
+    assert result["total_estimated_time"] <= 45
+
+
 def test_optimize_learning_path_never_raises_on_bad_input():
     # A single candidate whose time is exactly zero is a degenerate QUBO —
     # must still return a well-formed result, never propagate an exception.
