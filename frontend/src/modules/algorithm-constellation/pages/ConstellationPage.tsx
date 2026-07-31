@@ -81,6 +81,17 @@ const ConstellationPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [listAlgorithms]);
 
+  // Compute filtered algorithms based on search and filters
+  const filteredAlgorithms = useMemo(() => {
+    return algorithms.filter(alg => {
+      if (search && !alg.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterDifficulty !== 'All' && alg.difficulty !== filterDifficulty) return false;
+      // Note: filterDomain is in state but UI only uses selectedDomain (which changes camera focus).
+      // If we wanted a hard filter, we'd add: if (filterDomain !== 'All' && getAlgorithmDomain(alg.category ?? '', alg.name) !== filterDomain) return false;
+      return true;
+    });
+  }, [algorithms, search, filterDifficulty]);
+
   // Selected algorithm object
   const selectedAlgorithm = useMemo(
     () => algorithms.find(a => a.slug === selectedSlug) ?? null,
@@ -141,7 +152,7 @@ const ConstellationPage: React.FC = () => {
         <Suspense fallback={null}>
           {!loading && algorithms.length > 0 && (
             <ConstellationScene
-              algorithms={algorithms}
+              algorithms={filteredAlgorithms}
               selectedDomain={selectedDomain}
               selectedSlug={selectedSlug}
               isDark={isDark}
@@ -181,7 +192,7 @@ const ConstellationPage: React.FC = () => {
               </h1>
               <p className={cn('text-xs mt-0.5', isDark ? 'text-zinc-500' : 'text-zinc-600')}>
                 {selectedDomain
-                  ? `${selectedDomain} — ${algorithms.filter(a => getAlgorithmDomain(a.category ?? '', a.name) === selectedDomain).length} algorithms`
+                  ? `${selectedDomain} — ${filteredAlgorithms.filter(a => getAlgorithmDomain(a.category ?? '', a.name) === selectedDomain).length} algorithms`
                   : 'Click a domain node to explore'}
               </p>
             </div>
@@ -319,7 +330,7 @@ const ConstellationPage: React.FC = () => {
             )}
           >
             <QuantumFluencyRadar
-              algorithms={algorithms}
+              algorithms={filteredAlgorithms}
               onDomainHover={handleDomainHover}
               onDomainClick={handleRadarDomainClick}
             />
