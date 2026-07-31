@@ -8,11 +8,13 @@ import { useQBookApi } from '../hooks/useQBookApi';
 import { NotebookTile } from '../components/NotebookTile';
 import { QBookLocalOnlyNotice } from '../components/QBookLocalOnlyNotice';
 import type { NotebookSummary } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+import { SAMPLE_QML_NOTEBOOKS, type QmlNotebookTemplate } from '../data/sampleQmlNotebooks';
 
 const QBookLibraryPage: React.FC = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const { listNotebooks, createNotebook, deleteNotebook, loading, error } = useQBookApi();
+  const { listNotebooks, createNotebook, updateNotebook, deleteNotebook, loading, error } = useQBookApi();
   const [notebooks, setNotebooks] = useState<NotebookSummary[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -30,6 +32,27 @@ const QBookLibraryPage: React.FC = () => {
     setCreating(true);
     try {
       const notebook = await createNotebook();
+      navigate(`/qbook/${notebook.id}`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleLoadTemplate = async (template: QmlNotebookTemplate) => {
+    setCreating(true);
+    try {
+      const notebook = await createNotebook(template.title);
+      await updateNotebook(notebook.id, {
+        cells: template.cells.map((c) => ({
+          id: uuidv4(),
+          cell_type: c.type,
+          source: c.content,
+          outputs: [],
+          execution_count: null,
+        })),
+      });
       navigate(`/qbook/${notebook.id}`);
     } catch (err) {
       console.error(err);
@@ -87,14 +110,60 @@ const QBookLibraryPage: React.FC = () => {
             </motion.p>
           </div>
 
-          <button
-            onClick={handleCreate}
-            disabled={creating}
-            className="px-6 py-2.5 bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 font-medium transition-colors disabled:opacity-50 text-sm flex items-center gap-2 w-fit"
-          >
-            <FaPlus className="w-3.5 h-3.5" /> {creating ? 'Creating…' : 'New Notebook'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="px-6 py-2.5 bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 font-medium transition-colors disabled:opacity-50 text-sm flex items-center gap-2 w-fit"
+            >
+              <FaPlus className="w-3.5 h-3.5" /> {creating ? 'Creating…' : 'New Notebook'}
+            </button>
+          </div>
         </div>
+
+        {/* Templates Section */}
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold tracking-tight">QML Templates</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {SAMPLE_QML_NOTEBOOKS.map((template) => (
+              <div 
+                key={template.id} 
+                className={cn(
+                  "p-6 rounded-2xl border shadow-sm flex flex-col gap-3 transition-colors",
+                  theme === 'dark' ? "bg-zinc-900/50 border-white/10 hover:bg-zinc-900" : "bg-white border-zinc-200 hover:bg-zinc-50"
+                )}
+              >
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <h3 className="font-semibold text-lg">{template.title}</h3>
+                    <p className={cn("text-sm mt-1", theme === 'dark' ? "text-zinc-400" : "text-zinc-600")}>
+                      {template.description}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleLoadTemplate(template)}
+                    disabled={creating}
+                    className="px-4 py-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg font-medium transition-colors text-sm whitespace-nowrap"
+                  >
+                    Load Template
+                  </button>
+                </div>
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {template.tags.map(tag => (
+                    <span key={tag} className={cn(
+                      "text-xs px-2 py-1 rounded-full",
+                      theme === 'dark' ? "bg-white/10 text-zinc-300" : "bg-zinc-100 text-zinc-700"
+                    )}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold tracking-tight mt-4">Your Notebooks</h2>
 
         {error && (
           <div className="p-4 bg-red-100/10 border border-red-500/20 text-red-500 rounded-lg">{error}</div>
