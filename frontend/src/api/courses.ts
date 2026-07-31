@@ -34,6 +34,19 @@ export interface Course {
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 async function getToken() {
+  // On a hard page load (e.g. navigating straight to a course URL), Firebase
+  // needs a moment to rehydrate persisted auth state from IndexedDB before
+  // auth.currentUser is populated. AuthContext's `loading` gate covers most
+  // of that window, but authStateReady() is the actual Firebase-documented
+  // way to wait for it — apiClient.ts's axios interceptor already does this;
+  // this hand-rolled fetch wrapper didn't, which is the likely source of the
+  // transient "Failed to load course" fetches that only fail on first load.
+  try {
+    await auth.authStateReady();
+  } catch {
+    // Fall through if the auth state check itself throws — the currentUser
+    // check right below still catches a genuinely logged-out user.
+  }
   const user = auth.currentUser;
   if (!user) throw new Error("No user logged in");
   return await user.getIdToken();

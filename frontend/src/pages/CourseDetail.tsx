@@ -20,33 +20,46 @@ export default function CourseDetail() {
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [progress, setProgress] = useState<{ progress_percentage: number } | null>(null);
 
-  const fetchCourse = async () => {
+  const fetchCourse = async (isCancelled: () => boolean) => {
     if (!id) return;
     try {
       const data = await getCourse(id);
+      if (isCancelled()) return;
       setCourse(data);
       if (data.format && data.format !== 'recorded') {
         const sessions = await listLiveSessions(id);
+        if (isCancelled()) return;
         setLiveSessions(sessions);
       }
       if (data.enrolled || currentUser?.uid === data.owner_uid) {
         try {
           const p = await getCourseProgress(id);
+          if (isCancelled()) return;
           setProgress(p);
         } catch (e) {
           console.error("Error fetching progress", e);
         }
       }
     } catch (err) {
+      if (isCancelled()) return;
       console.error("Error fetching course", err);
       toast.error("Failed to load course details");
     } finally {
-      setLoading(false);
+      if (!isCancelled()) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (id && currentUser) fetchCourse();
+    if (!(id && currentUser)) return;
+    // StrictMode double-invokes effects in dev, which would otherwise fire
+    // fetchCourse() twice concurrently and toast twice on any transient
+    // failure — this guard makes only the latest invocation's result apply
+    // (the same pattern React's own docs recommend for async effects), so a
+    // stale in-flight request from a superseded mount/id change is ignored
+    // instead of racing the current one.
+    let cancelled = false;
+    fetchCourse(() => cancelled);
+    return () => { cancelled = true; };
   }, [id, currentUser]);
 
   const enroll = async () => {
