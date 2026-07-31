@@ -142,8 +142,7 @@ const ConstellationPage: React.FC = () => {
     >
       {/* ─── Main Content Area (shrinks when sidebar is open) ─── */}
       <div className={cn(
-        'relative h-full transition-all duration-300 shrink-0',
-        selectedSlug ? 'w-[calc(100%-20rem)]' : 'w-full'
+        'relative h-full transition-all duration-300 shrink-0 w-full'
       )}>
         {/* ─── 3D Canvas ───
           Starts below the toolbar rather than at inset-0: the toolbar is an
@@ -170,8 +169,8 @@ const ConstellationPage: React.FC = () => {
 
       {/* ─── Top toolbar (glass overlay) ─── */}
       <div className={cn(
-        'absolute top-0 left-0 right-0 z-20 px-5 py-3 flex flex-col gap-2',
-        'border-b transition-colors',
+        'absolute top-0 left-0 right-0 z-20 px-5 flex flex-col justify-center gap-2',
+        'h-[104px] border-b transition-colors',
         isDark
           ? 'bg-zinc-950/70 border-white/6 backdrop-blur-xl'
           : 'bg-white/80 border-zinc-200/80 backdrop-blur-xl'
