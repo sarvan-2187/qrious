@@ -25,7 +25,7 @@ from kernel_manager import CapacityError, KernelSession, KernelSessionManager, w
 MAX_CONCURRENT_KERNELS = int(os.getenv("QBOOK_MAX_KERNELS", "20"))
 MAX_KERNELS_PER_UID = int(os.getenv("QBOOK_MAX_KERNELS_PER_UID", "3"))
 IDLE_TIMEOUT_SECONDS = int(os.getenv("QBOOK_IDLE_TIMEOUT_SECONDS", "1200"))
-EXEC_TIMEOUT_SECONDS = int(os.getenv("QBOOK_EXEC_TIMEOUT_SECONDS", "30"))
+EXEC_TIMEOUT_SECONDS = int(os.getenv("QBOOK_EXEC_TIMEOUT_SECONDS", "120"))
 
 sessions = KernelSessionManager(
     max_kernels=MAX_CONCURRENT_KERNELS,
