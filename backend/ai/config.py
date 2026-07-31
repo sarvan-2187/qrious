@@ -171,8 +171,8 @@ DEFAULT_PROVIDER_PRIORITY = _env_list(
 # see PLANS/qbook-qpilot.md): Mistral first, then Groq, remaining providers
 # kept in their prior relative order.
 TASK_PROVIDER_ORDER: dict[AITask, list[str]] = {
-    AITask.CODE: ["mistral", "groq", "kimi", "gemini", "nvidia", "zai"],
-    AITask.REASONING: ["groq", "gemini", "mistral", "nvidia", "kimi", "zai"],
+    AITask.CODE: ["mistral", "groq", "kimi", "gemini", "nvidia", "zai", "qrious_code"],
+    AITask.REASONING: ["groq", "gemini", "mistral", "nvidia", "kimi", "zai", "qrious_code"],
 }
 
 # Per-(task, provider) model override — lets a task ask a provider for a

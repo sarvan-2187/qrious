@@ -140,6 +140,13 @@ _STATIC: dict[str, DeviceCapability] = {
     },
 }
 
+# qBraid exposes vendor-native targets under aggregator IDs. These are the same
+# physical IonQ targets as the direct IonQ adapter, so reuse the cited profile
+# while retaining the qBraid ID in recommendations and submitted jobs.
+_ALIASES = {
+    "qbraid::ionq:ionq:sim:simulator": "ionq::ionq_simulator",
+    "qbraid::openquantum:ionq:qpu:forte-1": "ionq::qpu.forte-1",
+}
 # Calibration older than this is flagged. IBM recalibrates roughly daily and
 # devices can drift several-fold between calibrations, so a static table is
 # always a starting point — the point of surfacing age is that the student can
@@ -155,21 +162,53 @@ _LIVE_OWNED_KEYS = ("pending_jobs", "num_qubits")
 def get_capability(
     provider: str, device_id: str, live: Optional[dict] = None
 ) -> Optional[DeviceCapability]:
-    """Returns the capability record for one device, or None if we have no
-    cited data for it. None is deliberate: the ranker surfaces such devices in
-    a separate 'unrated' list rather than scoring them off invented numbers."""
-    static = _STATIC.get(device_key(provider, device_id))
+    """Returns cited static data, an equivalent provider alias, or live data.
+
+    A simulator is noiseless by definition. IBM additionally supplies complete
+    per-operation calibration in its backend target; that current data is used
+    only when all three error classes are present. Incomplete vendor data is
+    deliberately still unrated rather than filled with an invented readout
+    error.
+    """
+    live = live or {}
+    if live.get("is_simulator"):
+        simulated: DeviceCapability = dict(_IDEAL_SIMULATOR)  # type: ignore[assignment]
+        simulated["num_qubits"] = live.get("num_qubits") or 30
+        if live.get("modality") == "trapped-ion":
+            simulated["basis_gates"] = _TRAPPED_ION_BASIS
+        return simulated
+
+    calibration = live.get("calibration")
+    if isinstance(calibration, dict) and all(
+        isinstance(calibration.get(key), (int, float))
+        for key in ("err_1q", "err_2q", "err_readout")
+    ):
+        return {
+            "num_qubits": live.get("num_qubits") or calibration.get("num_qubits") or 0,
+            "connectivity": calibration.get("connectivity", "limited"),
+            "basis_gates": calibration.get("basis_gates") or _SUPERCONDUCTING_BASIS,
+            "err_1q": calibration["err_1q"],
+            "err_2q": calibration["err_2q"],
+            "err_readout": calibration["err_readout"],
+            "cost_amount": 0.0,
+            "cost_unit": "free",
+            "cost_basis": "Provider runtime billing; no per-shot estimate available.",
+            "pending_jobs": live.get("pending_jobs"),
+            "source": calibration.get("source", "Live provider backend calibration"),
+            "source_url": calibration.get("source_url", ""),
+            "published_date": calibration.get("published_date", date.today().isoformat()),
+        }
+
+    key = device_key(provider, device_id)
+    static = _STATIC.get(_ALIASES.get(key, key))
     if static is None:
         return None
 
     merged: DeviceCapability = dict(static)  # type: ignore[assignment]
-    if live:
-        for key in _LIVE_OWNED_KEYS:
-            if live.get(key) is not None:
-                merged[key] = live[key]  # type: ignore[literal-required]
+    for key in _LIVE_OWNED_KEYS:
+        if live.get(key) is not None:
+            merged[key] = live[key]  # type: ignore[literal-required]
     return merged
-
-
 def calibration_age_days(cap: DeviceCapability, today: Optional[date] = None) -> Optional[int]:
     """Days since the cited numbers were published, or None if unparseable."""
     try:

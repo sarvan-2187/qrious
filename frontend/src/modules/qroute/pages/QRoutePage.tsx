@@ -10,7 +10,7 @@ import { useQasmApi } from '../../gates-playground/hooks/useQasmApi';
 import { gatesToQasm } from '../../gates-playground/utils/qasmParser';
 import { useQRouteApi } from '../hooks/useQRouteApi';
 import type { QRouteDevice, QRouteJob, QRouteProvider, Modality } from '../hooks/useQRouteApi';
-import RecommendationPanel from '../components/RecommendationPanel';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -322,12 +322,6 @@ const QRoutePage: React.FC = () => {
 
           {/* Composer + job history — right, 4 cols */}
           <div className="col-span-12 lg:col-span-4 flex flex-col gap-4 min-h-0">
-            <RecommendationPanel
-              qasm={qasm}
-              shots={shots}
-              onSelect={setSelectedDeviceKey}
-            />
-
             <Card size="sm" className="shrink-0">
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -492,6 +486,7 @@ const QRoutePage: React.FC = () => {
                 </div>
               </ScrollArea>
             </Card>
+
           </div>
         </div>
       </div>
