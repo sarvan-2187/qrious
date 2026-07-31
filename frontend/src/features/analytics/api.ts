@@ -31,7 +31,7 @@ export async function fetchAnalyticsDashboard(roadmapId?: string) {
   return res.data as { data: AnalyticsDashboardData };
 }
 
-export async function sendAnalyticsReportEmail() {
-  const res = await apiClient.post('/api/v1/learning/analytics/email-report');
+export async function sendAnalyticsReportEmail(targetEmail?: string) {
+  const res = await apiClient.post('/api/v1/learning/analytics/email-report', targetEmail ? { email: targetEmail } : {});
   return res.data as { data: { message: string; to_email: string } };
 }

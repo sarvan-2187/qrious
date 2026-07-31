@@ -7,11 +7,12 @@ from typing import Optional
 
 async def send_email(to_email: str, subject: str, body: str, html_content: Optional[str] = None) -> None:
     """Sends a plain-text or HTML email through the SMTP account configured in backend/.env."""
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT", "587"))
-    username = os.getenv("SMTP_USERNAME")
-    password = os.getenv("SMTP_PASSWORD")
-    from_email = os.getenv("SMTP_FROM") or username or "noreply@qrious.app"
+    host = (os.getenv("SMTP_HOST") or "").strip("'\" ")
+    port_str = (os.getenv("SMTP_PORT") or "587").strip("'\" ")
+    port = int(port_str) if port_str.isdigit() else 587
+    username = (os.getenv("SMTP_USERNAME") or "").strip("'\" ")
+    password = (os.getenv("SMTP_PASSWORD") or "").strip("'\" ")
+    from_email = (os.getenv("SMTP_FROM") or "").strip("'\" ") or username or "noreply@qrious.app"
 
     message = EmailMessage()
     message["From"] = from_email

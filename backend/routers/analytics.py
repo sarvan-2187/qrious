@@ -4,7 +4,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 
 from database import get_db
 from auth import get_verified_firebase_user
@@ -350,7 +351,7 @@ async def get_analytics_dashboard(
     assessments_query: Dict[str, Any] = {"firebase_uid": firebase_uid, "status": "completed"}
 
     roadmap_topics = []
-    if roadmap_id and roadmap_id.strip() != "" and roadmap_id != "all":
+    if isinstance(roadmap_id, str) and roadmap_id.strip() != "" and roadmap_id != "all":
         # Resolve topics for this roadmap or match topic_slug/roadmap_id directly
         roadmap_topics = await db.roadmap_topics.find({"$or": [{"roadmap_id": roadmap_id}, {"domain": roadmap_id}]}).sort("order_index", 1).to_list(length=100)
         topic_slugs = [t.get("slug") for t in roadmap_topics if "slug" in t]
@@ -743,8 +744,13 @@ async def trigger_demo_seed(
     return {"data": res, "meta": None, "error": None}
 
 
+class EmailReportRequest(BaseModel):
+    email: Optional[str] = None
+
+
 @router.post("/analytics/email-report", summary="Send official academic progress report to registered email")
 async def email_analytics_report(
+    payload: Optional[EmailReportRequest] = Body(None),
     decoded_token: dict = Depends(get_verified_firebase_user)
 ):
     db = get_db()
@@ -752,18 +758,26 @@ async def email_analytics_report(
         raise HTTPException(status_code=500, detail="Database not connected")
 
     firebase_uid = decoded_token.get("uid")
-    user_email = decoded_token.get("email")
+    
+    # Resolve recipient email address:
+    # 1. Payload email (if provided)
+    # 2. Verified token email
+    # 3. Registered email in MongoDB users collection
+    user_email = (payload.email if payload and payload.email else None) or decoded_token.get("email")
 
     if not user_email:
         user_doc = await db.users.find_one({"firebase_uid": firebase_uid})
         if user_doc:
             user_email = user_doc.get("email")
 
-    if not user_email:
-        user_email = "student@qrious.app"
+    if not user_email or "@" not in user_email or user_email.endswith("@qrious.app"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No valid registered email address found for your account."
+        )
 
     # Get analytics metrics for user
-    dash_data = await get_analytics_dashboard(tz_offset=0, decoded_token=decoded_token)
+    dash_data = await get_analytics_dashboard(tz_offset=0, roadmap_id=None, decoded_token=decoded_token)
     data = dash_data.get("data", {})
     learning_summary = data.get("learning_summary", {})
     user_doc = await db.users.find_one({"firebase_uid": firebase_uid}) or {}
@@ -840,7 +854,11 @@ The Qrious Academic Team
     try:
         await send_email(to_email=user_email, subject=subject, body=plain_body, html_content=html_content)
     except Exception as e:
-        print(f"[email_analytics_report] Warning sending email: {e}", flush=True)
+        print(f"[email_analytics_report] Error sending email: {e}", flush=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send email to {user_email}: {str(e)}"
+        )
 
     return {
         "data": {

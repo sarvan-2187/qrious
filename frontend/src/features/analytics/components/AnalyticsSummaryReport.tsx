@@ -22,8 +22,9 @@ export const AnalyticsSummaryReport: React.FC<AnalyticsSummaryReportProps> = ({ 
   const handleSendEmail = async () => {
     setSendingEmail(true);
     try {
-      const res = await sendAnalyticsReportEmail();
-      const targetEmail = res.data?.to_email || currentUser?.email || 'your registered email';
+      const emailToUse = currentUser?.email || undefined;
+      const res = await sendAnalyticsReportEmail(emailToUse);
+      const targetEmail = res.data?.to_email || emailToUse || 'your registered email';
       toast.success(`Academic Progress Report successfully emailed to ${targetEmail}!`);
     } catch (err: any) {
       console.error("Failed to email report:", err);

@@ -332,8 +332,11 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
                 {title}
               </h2>
               <div className="flex items-center gap-2 mt-0.5 text-xs font-sans">
-                <span className={cn("flex items-center gap-1 px-2.5 py-0.5 rounded-full border font-mono text-[10px]", isDark ? "bg-black border-white/10 text-zinc-400" : "bg-zinc-50 border-zinc-200 text-zinc-600")}>
-                  <FaClock className="text-emerald-500" /> {estimated_minutes} min
+                <span 
+                  title="Total Unit Duration: Video lecture + 30-45m allotted for Pre/Post Tests, Flashcards & Slide decks"
+                  className={cn("flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-mono text-[10px]", isDark ? "bg-black border-white/10 text-zinc-400" : "bg-zinc-50 border-zinc-200 text-zinc-600")}
+                >
+                  <FaClock className="text-emerald-500" /> {estimated_minutes >= 60 ? `${Math.floor(estimated_minutes / 60)}h ${estimated_minutes % 60 ? `${estimated_minutes % 60}m` : ''}` : `${estimated_minutes} mins`} <span className="text-[9px] text-emerald-400 font-semibold font-mono">(Video + Tests/Slides)</span>
                 </span>
                 <span className={cn(
                   "px-2.5 py-0.5 rounded-full uppercase tracking-wider text-[9px] border font-mono font-medium",
