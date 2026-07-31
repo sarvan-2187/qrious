@@ -58,7 +58,7 @@ export const DomainSelector: React.FC<DomainSelectorProps> = ({
                     <span className="font-sans font-semibold tracking-tight">{domain.name}</span>
 
                     {isLocked ? (
-                      <span className="ml-1 text-amber-400 flex items-center gap-1 text-xs font-mono bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/30">
+                      <span className="ml-1 text-zinc-400 flex items-center gap-1 text-xs font-mono bg-zinc-800/60 px-2 py-0.5 rounded border border-zinc-700">
                         <FaLock className="text-[10px]" /> Lock
                       </span>
                     ) : null}
@@ -69,7 +69,7 @@ export const DomainSelector: React.FC<DomainSelectorProps> = ({
                   <div className="font-semibold text-xs flex items-center justify-between">
                     <span>{domain.name}</span>
                     {isLocked ? (
-                      <span className="text-amber-400 flex items-center gap-1 text-[10px] font-mono">
+                      <span className="text-zinc-400 flex items-center gap-1 text-[10px] font-mono">
                         <FaLock className="text-[10px]" /> Level Locked
                       </span>
                     ) : (
@@ -79,17 +79,17 @@ export const DomainSelector: React.FC<DomainSelectorProps> = ({
                   <p className="text-[11px] text-zinc-400 leading-snug">{domain.description}</p>
                   
                   {isLocked && (
-                    <div className="pt-1.5 border-t border-zinc-800 text-[10px] text-amber-300 space-y-0.5 font-mono">
+                    <div className="pt-1.5 border-t border-zinc-800 text-[10px] text-zinc-300 space-y-0.5 font-mono">
                       <p className="flex items-center gap-1 font-semibold">
                         <FaLock className="text-[10px]" /> Unlock Requirements:
                       </p>
                       <ul className="list-disc list-inside text-zinc-400 space-y-0.5 pl-1">
-                        <li>Reach <span className="text-amber-300 font-semibold">{domain.requiredXp} XP</span> (You have {userXp} XP)</li>
+                        <li>Reach <span className="text-zinc-200 font-semibold">{domain.requiredXp} XP</span> (You have {userXp} XP)</li>
                         {domain.prerequisiteDomainName && (
                           <li>Complete prerequisite: <span className="text-zinc-200">{domain.prerequisiteDomainName}</span></li>
                         )}
                         {domain.requiredPretestScore && (
-                          <li>Pre-test Score &ge; <span className="text-amber-300 font-semibold">{domain.requiredPretestScore}%</span></li>
+                          <li>Pre-test Score &ge; <span className="text-zinc-200 font-semibold">{domain.requiredPretestScore}%</span></li>
                         )}
                       </ul>
                     </div>

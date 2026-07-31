@@ -8,6 +8,7 @@ import { HeatmapCalendar } from '../components/HeatmapCalendar';
 import { PersonalizedInsightsCard } from '../components/PersonalizedInsightsCard';
 import { MasteryProgressCard } from '../components/MasteryProgressCard';
 import { AnalyticsSummaryReport } from '../components/AnalyticsSummaryReport';
+import { TopicPrePostBreakdown } from '../components/TopicPrePostBreakdown';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -251,6 +252,12 @@ export const AnalyticsPage: React.FC = () => {
 
             {/* Phase 2: Learning Assessment Module */}
             <PrePostDeltaCard deltaInfo={data.pre_post_delta} />
+            
+            {/* Phase 2.5: Topic Pre/Post Breakdown — always visible */}
+            <TopicPrePostBreakdown
+              entries={data.topic_assessment_breakdown ?? []}
+              roadmapId={selectedRoadmap}
+            />
 
             {/* Phase 3: Concept Mastery Matrix */}
             <ConceptMasteryMatrix concepts={data.concept_mastery_matrix} />

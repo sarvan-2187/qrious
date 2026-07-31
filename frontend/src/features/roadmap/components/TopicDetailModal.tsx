@@ -945,6 +945,52 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
                 </div>
               )}
 
+              {/* Assessment Actions: Pre-Test available once started; Post-Test only after completion */}
+              <div className="flex gap-2 w-full pt-1">
+                {/* PRE-TEST: available once topic is started or completed */}
+                {(user_status === 'in_progress' || user_status === 'completed') ? (
+                  <button
+                    onClick={() => { onClose(); navigate(`/analytics/assessment/pre?topic_slug=${slug}`); }}
+                    className={cn(
+                      "flex-1 py-2 rounded-xl text-[10px] sm:text-xs font-mono font-medium shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer border",
+                      isDark ? "bg-zinc-900 border-white/10 hover:bg-zinc-800 text-zinc-300" : "bg-white border-zinc-300 hover:bg-zinc-100 text-zinc-700"
+                    )}
+                  >
+                    <FaBrain className="text-emerald-500" /> Pre-Test
+                  </button>
+                ) : (
+                  <div className={cn(
+                    "flex-1 py-2 rounded-xl text-[10px] sm:text-xs font-mono font-medium flex items-center justify-center gap-1.5 border cursor-not-allowed opacity-40",
+                    isDark ? "bg-zinc-900 border-white/10 text-zinc-500" : "bg-zinc-100 border-zinc-200 text-zinc-400"
+                  )}>
+                    <FaLock className="text-xs" /> Pre-Test
+                  </div>
+                )}
+
+                {/* POST-TEST: only unlocked after topic is completed */}
+                {user_status === 'completed' ? (
+                  <button
+                    onClick={() => { onClose(); navigate(`/analytics/assessment/post?topic_slug=${slug}`); }}
+                    className={cn(
+                      "flex-1 py-2 rounded-xl text-[10px] sm:text-xs font-mono font-medium shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer border",
+                      isDark ? "bg-emerald-500/20 border-emerald-500/40 hover:bg-emerald-500/30 text-emerald-400" : "bg-emerald-50 border-emerald-300 hover:bg-emerald-100 text-emerald-700"
+                    )}
+                  >
+                    <FaCheckCircle className="text-emerald-500" /> Post-Test
+                  </button>
+                ) : (
+                  <div
+                    title="Complete this topic to unlock the Post-Test"
+                    className={cn(
+                      "flex-1 py-2 rounded-xl text-[10px] sm:text-xs font-mono font-medium flex items-center justify-center gap-1.5 border cursor-not-allowed opacity-40",
+                      isDark ? "bg-zinc-900 border-white/10 text-zinc-500" : "bg-zinc-100 border-zinc-200 text-zinc-400"
+                    )}
+                  >
+                    <FaLock className="text-xs" /> Post-Test
+                  </div>
+                )}
+              </div>
+
               {/* ➡️ Move to Next Topic Button */}
               {nextTopic && (
                 <button

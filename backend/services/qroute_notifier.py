@@ -85,18 +85,21 @@ async def poll_and_notify_jobs() -> None:
         # forever, defeating the count_documents == 0 short-circuit below.
         "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=2)},
     }
-    in_flight_count = await db.quantum_hw_jobs.count_documents(in_flight_filter)
-    if in_flight_count == 0:
-        return
+    try:
+        in_flight_count = await db.quantum_hw_jobs.count_documents(in_flight_filter)
+        if in_flight_count == 0:
+            return
 
-    cursor = db.quantum_hw_jobs.find(in_flight_filter)
-    async for doc in cursor:
-        try:
-            doc = await _refresh_job_status(db, doc)
-            await _maybe_notify(db, doc)
-        except Exception as e:
-            # One bad job (unknown provider, malformed doc, transient Mongo
-            # error) must not abort the cursor — cursor order is stable, so
-            # an uncaught exception here would permanently starve every job
-            # positioned after it, on every future cycle too.
-            print(f"[qroute_notifier] skipping job {doc.get('_id')}: {e}", flush=True)
+        cursor = db.quantum_hw_jobs.find(in_flight_filter)
+        async for doc in cursor:
+            try:
+                doc = await _refresh_job_status(db, doc)
+                await _maybe_notify(db, doc)
+            except Exception as e:
+                # One bad job (unknown provider, malformed doc, transient Mongo
+                # error) must not abort the cursor — cursor order is stable, so
+                # an uncaught exception here would permanently starve every job
+                # positioned after it, on every future cycle too.
+                print(f"[qroute_notifier] skipping job {doc.get('_id')}: {e}", flush=True)
+    except Exception as e:
+        print(f"[qroute_notifier] Failed to poll database (network/MongoDB error): {e}", flush=True)

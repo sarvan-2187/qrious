@@ -14,6 +14,8 @@ from services.streak_engine import streak_engine
 from services.badge_engine import badge_engine
 from services.demo_seed import seed_demo_user_history
 from services.email_service import send_email
+from services.topic_assessment_service import generate_topic_assessment_questions
+from ai.gateway import AIGateway
 
 router = APIRouter(prefix="/api/v1/learning", tags=["Analytics & Assessments"])
 
@@ -120,6 +122,7 @@ def strip_sensitive_answers(question: Dict[str, Any]) -> Dict[str, Any]:
 @router.post("/assessments/{type}/start", summary="Start a Pre or Post Assessment session")
 async def start_assessment(
     type: str,
+    topic_slug: Optional[str] = Query(None),
     count: int = Query(10, ge=1, le=25),
     difficulty: Optional[str] = Query(None),
     decoded_token: dict = Depends(get_verified_firebase_user)
@@ -133,32 +136,54 @@ async def start_assessment(
 
     firebase_uid = decoded_token.get("uid")
 
-    query: Dict[str, Any] = {}
-    if difficulty:
-        query["difficulty"] = difficulty.lower()
-
-    cursor = db.quiz_questions.find(query)
-    all_questions = await cursor.to_list(length=200)
-
-    if not all_questions:
-        raise HTTPException(status_code=404, detail="No questions available for assessment")
-
-    sample_size = min(count, len(all_questions))
-    selected_questions = random.sample(all_questions, sample_size)
-    q_ids = [q["_id"] for q in selected_questions]
+    if topic_slug:
+        topic = await db.roadmap_topics.find_one({"slug": topic_slug})
+        if not topic:
+            # Fallback to seed topics if missing from DB for some reason
+            from seed.roadmap_data import SEED_TOPICS
+            topic = next((t for t in SEED_TOPICS if t["slug"] == topic_slug), None)
+            if not topic:
+                raise HTTPException(status_code=404, detail="Topic not found")
+        
+        gateway = AIGateway()
+        questions = await generate_topic_assessment_questions(topic, type.lower(), firebase_uid, gateway)
+        if not questions:
+            raise HTTPException(status_code=500, detail="Failed to generate topic assessment questions")
+            
+        selected_questions = questions
+        q_ids = [q["_id"] for q in selected_questions]
+    else:
+        query: Dict[str, Any] = {}
+        if difficulty:
+            query["difficulty"] = difficulty.lower()
+    
+        cursor = db.quiz_questions.find(query)
+        all_questions = await cursor.to_list(length=200)
+    
+        if not all_questions:
+            raise HTTPException(status_code=404, detail="No questions available for assessment")
+    
+        sample_size = min(count, len(all_questions))
+        selected_questions = random.sample(all_questions, sample_size)
+        q_ids = [q["_id"] for q in selected_questions]
 
     # Create assessment document
     assessment_doc = {
         "firebase_uid": firebase_uid,
         "type": type.lower(),
+        "topic_slug": topic_slug,
         "topic_scope": list(set(q.get("topic_slug", "general") for q in selected_questions)),
         "question_ids": q_ids,
+
         "status": "started",
         "answers": [],
         "score_pct": 0.0,
         "xp_earned": 0,
         "taken_at": datetime.utcnow()
     }
+
+    if topic_slug:
+        assessment_doc["questions_full"] = selected_questions
 
     result = await db.assessments.insert_one(assessment_doc)
     assessment_id = str(result.inserted_id)
@@ -202,9 +227,15 @@ async def submit_assessment(
         raise HTTPException(status_code=400, detail="No answers provided in payload")
 
     question_ids = assessment.get("question_ids", [])
-    q_cursor = db.quiz_questions.find({"_id": {"$in": question_ids}})
-    raw_questions = await q_cursor.to_list(length=len(question_ids))
-    questions_map = {str(q["_id"]): q for q in raw_questions}
+    questions_full = assessment.get("questions_full")
+    
+    if questions_full:
+        # AI-generated questions have UUID _id values — stringify them consistently
+        questions_map = {str(q["_id"]): q for q in questions_full}
+    else:
+        q_cursor = db.quiz_questions.find({"_id": {"$in": question_ids}})
+        raw_questions = await q_cursor.to_list(length=len(question_ids))
+        questions_map = {str(q["_id"]): q for q in raw_questions}
 
     graded_answers = []
     total_correct = 0
@@ -225,7 +256,10 @@ async def submit_assessment(
             total_correct += 1
             total_xp_earned += int(xp_earned)
 
-        q_id_oid = ObjectId(q_id_str) if ObjectId.is_valid(q_id_str) else q_id_str
+        # Handle both ObjectId and UUID types for _id
+        q_id_oid = q_id_str  # keep as string for UUID-based AI-generated questions
+        if ObjectId.is_valid(q_id_str):
+            q_id_oid = ObjectId(q_id_str)
 
         graded_answers.append({
             "question_id": q_id_oid,
@@ -315,9 +349,10 @@ async def get_analytics_dashboard(
     quiz_query: Dict[str, Any] = {"firebase_uid": firebase_uid}
     assessments_query: Dict[str, Any] = {"firebase_uid": firebase_uid, "status": "completed"}
 
+    roadmap_topics = []
     if roadmap_id and roadmap_id.strip() != "" and roadmap_id != "all":
         # Resolve topics for this roadmap or match topic_slug/roadmap_id directly
-        roadmap_topics = await db.roadmap_topics.find({"$or": [{"roadmap_id": roadmap_id}, {"domain": roadmap_id}]}).to_list(length=100)
+        roadmap_topics = await db.roadmap_topics.find({"$or": [{"roadmap_id": roadmap_id}, {"domain": roadmap_id}]}).sort("order_index", 1).to_list(length=100)
         topic_slugs = [t.get("slug") for t in roadmap_topics if "slug" in t]
         if not topic_slugs:
             topic_slugs = [roadmap_id]
@@ -409,6 +444,79 @@ async def get_analytics_dashboard(
         total_evaluations=len(assessments)
     )
     delta = pre_post_delta.get("delta_pct")
+
+    # 3.5 Topic Assessment Breakdown — always built from all assessed topics the user has taken
+    # When a roadmap filter is active we use its topic list; otherwise we derive topics from the assessments themselves.
+    topic_assessment_breakdown = []
+    
+    if roadmap_topics:
+        # Roadmap filter active: show all topics in that domain, annotated with scores
+        assessed_topics = roadmap_topics
+        topic_meta = {t.get("slug"): t for t in roadmap_topics}
+    else:
+        # No filter: discover unique topic_slugs from completed assessments
+        seen_slugs = {}
+        for a in assessments:
+            t_slug = a.get("topic_slug")
+            if t_slug and t_slug not in seen_slugs:
+                seen_slugs[t_slug] = a
+        
+        if seen_slugs:
+            # Try to enrich with DB metadata, fall back to slug-based title
+            db_topics = await db.roadmap_topics.find({"slug": {"$in": list(seen_slugs.keys())}}).to_list(length=100)
+            topic_meta = {t.get("slug"): t for t in db_topics}
+            assessed_topics = [
+                topic_meta.get(slug, {"slug": slug, "title": slug.replace("-", " ").title(), "order_index": i})
+                for i, slug in enumerate(seen_slugs.keys())
+            ]
+        else:
+            assessed_topics = []
+            topic_meta = {}
+
+    for t in assessed_topics:
+        t_slug = t.get("slug")
+        if not t_slug:
+            continue
+        
+        # Find the most recent pre and post tests for this specific topic
+        t_pre = next((a for a in assessments if a.get("type") == "pre" and a.get("topic_slug") == t_slug), None)
+        t_post = next((a for a in assessments if a.get("type") == "post" and a.get("topic_slug") == t_slug), None)
+        
+        # Only include topics that have at least one assessment taken
+        if not roadmap_topics and t_pre is None and t_post is None:
+            continue
+        
+        pre_side = {
+            "taken": t_pre is not None,
+            "score_pct": t_pre.get("score_pct") if t_pre else None,
+            "total_correct": t_pre.get("total_correct", 0) if t_pre else 0,
+            "total_questions": t_pre.get("total_questions", 0) if t_pre else 0,
+            "taken_at": t_pre.get("submitted_at").isoformat() if t_pre and t_pre.get("submitted_at") else None
+        }
+        
+        post_side = {
+            "taken": t_post is not None,
+            "score_pct": t_post.get("score_pct") if t_post else None,
+            "total_correct": t_post.get("total_correct", 0) if t_post else 0,
+            "total_questions": t_post.get("total_questions", 0) if t_post else 0,
+            "taken_at": t_post.get("submitted_at").isoformat() if t_post and t_post.get("submitted_at") else None
+        }
+        
+        t_delta_info = compute_pre_post_delta_info(
+            pre_score=pre_side["score_pct"],
+            post_score=post_side["score_pct"]
+        )
+        
+        topic_assessment_breakdown.append({
+            "topic_slug": t_slug,
+            "topic_title": t.get("title", t_slug),
+            "order_index": t.get("order_index", 0),
+            "pre": pre_side,
+            "post": post_side,
+            "delta_pct": t_delta_info.get("delta_pct"),
+            "performance_classification": t_delta_info.get("performance_classification"),
+            "academic_recommendation": t_delta_info.get("academic_recommendation")
+        })
 
     # 4. Accuracy Trend (real merged timeline of actual quizzes & assessments)
     combined_timeline = []
@@ -598,6 +706,7 @@ async def get_analytics_dashboard(
 
     response_payload = {
         "data": {
+            "topic_assessment_breakdown": topic_assessment_breakdown,
             "concept_mastery_matrix": concept_mastery_matrix,
             "weak_concepts": weak_concepts,
             "pre_post_delta": pre_post_delta,

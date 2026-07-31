@@ -5,10 +5,11 @@ import type {
   AnalyticsDashboardData
 } from './types/analytics.types';
 
-export async function startAssessment(type: 'pre' | 'post', count = 10, difficulty?: string) {
+export async function startAssessment(type: 'pre' | 'post', count = 10, difficulty?: string, topicSlug?: string) {
   const params = new URLSearchParams();
   params.append('count', count.toString());
   if (difficulty) params.append('difficulty', difficulty);
+  if (topicSlug) params.append('topic_slug', topicSlug);
 
   const res = await apiClient.post(`/api/v1/learning/assessments/${type}/start?${params.toString()}`);
   return res.data as { data: AssessmentStartResponse };
