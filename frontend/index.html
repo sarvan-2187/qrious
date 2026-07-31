@@ -7,6 +7,12 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Satoshi (Fontshare) — loaded as a <link>, not a CSS @import: Tailwind
+         v4's CSS bundler resolves local @imports (fontsource packages) fine
+         but silently drops @import url(https://...) to a remote host, so the
+         font never loaded when it lived in index.css. -->
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap">
     <title>Qrious</title>
   </head>
   <body>

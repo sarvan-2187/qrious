@@ -1,103 +1,60 @@
-import { useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Sphere, Line, Preload, OrbitControls } from '@react-three/drei';
-import * as THREE from 'three';
+import { useEffect, useRef, useState } from 'react';
+import { BlochSphere3D } from '@/components/bloch/components/BlochSphere3D';
+import type { BlochVector } from '@/components/bloch/types/quantum';
 
-function BlochSphereInner({ color = '#34D399', wireframeOpacity = 0.2 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  const { gl } = useThree();
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0 }
-    );
-    observer.observe(gl.domElement);
-    return () => observer.disconnect();
-  }, [gl.domElement]);
+// Landing hero background — reuses the same glass-sphere/glowing-arrow visual
+// from the real 3D Bloch Sphere Explorer (components/bloch/components/BlochSphere3D)
+// instead of the old flat green wireframe, so the hero preview actually looks
+// like the tool it's advertising. BlochSphere3D owns its own <Canvas> and
+// OrbitControls internally; the hero wraps this in a pointer-events-none div
+// (see HeroSection.tsx), so those controls never receive input here — it's
+// purely decorative, driven by a slow simulated precession instead of user drag.
+export default function BlochSphereCanvas() {
+  const [blochVec, setBlochVec] = useState<BlochVector>({ u: 0.82, v: 0, w: 0.57 });
+  const reducedMotion = useRef(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(mediaQuery.matches);
-    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    reducedMotion.current = mediaQuery.matches;
+    const handler = (e: MediaQueryListEvent) => { reducedMotion.current = e.matches; };
     mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
+
+    if (reducedMotion.current) return () => mediaQuery.removeEventListener('change', handler);
+
+    // Precession around the Z axis at a fixed polar angle — visually reads as
+    // a qubit spin state slowly sweeping around the sphere, the same physical
+    // picture the Explorer teaches.
+    let rafId = 0;
+    const THETA = (35 * Math.PI) / 180; // polar angle off +Z
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const t = (now - start) / 1000;
+      const phi = t * 0.35; // slow sweep
+      setBlochVec({
+        u: Math.sin(THETA) * Math.cos(phi),
+        v: Math.sin(THETA) * Math.sin(phi),
+        w: Math.cos(THETA),
+      });
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handler);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  useFrame((_, delta) => {
-    if (groupRef.current && !reducedMotion && isVisible) {
-      groupRef.current.rotation.y += delta * 0.15;
-      groupRef.current.rotation.z += delta * 0.05;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      {/* Main sphere wireframe */}
-      <Sphere args={[2, 32, 32]}>
-        <meshBasicMaterial 
-          color={color} 
-          wireframe 
-          transparent 
-          opacity={wireframeOpacity} 
-        />
-      </Sphere>
-      
-      {/* Equator */}
-      <Sphere args={[2.01, 32, 2]} rotation={[Math.PI / 2, 0, 0]}>
-         <meshBasicMaterial 
-          color={color} 
-          wireframe 
-          transparent 
-          opacity={wireframeOpacity * 2} 
-        />
-      </Sphere>
-
-      {/* Axis Z (vertical) */}
-      <Line 
-        points={[new THREE.Vector3(0, -2.5, 0), new THREE.Vector3(0, 2.5, 0)]}
-        color={color}
-        lineWidth={1}
-        transparent
-        opacity={0.5}
-      />
-      {/* State Vector */}
-      <Line 
-        points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.4, 1.4, 0)]}
-        color="#ffffff"
-        lineWidth={2}
-      />
-      <mesh position={[1.4, 1.4, 0]}>
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
-    </group>
-  );
-}
-
-interface BlochSphereCanvasProps {
-  color?: string;
-  wireframeOpacity?: number;
-}
-
-export default function BlochSphereCanvas({ color, wireframeOpacity }: BlochSphereCanvasProps) {
   return (
     <div className="w-full h-full pointer-events-none absolute inset-0 z-0">
-      <Canvas 
-        camera={{ position: [0, 0, 6], fov: 45 }} 
-        dpr={[1, 1.5]}
-        gl={{ preserveDrawingBuffer: false, powerPreference: 'low-power' }}
-      >
-        <ambientLight intensity={0.5} />
-        <BlochSphereInner color={color} wireframeOpacity={wireframeOpacity} />
-        <Preload all />
-        <OrbitControls enableZoom={false} enablePan={false} autoRotate={false} />
-      </Canvas>
+      <BlochSphere3D
+        blochVec={blochVec}
+        trajectories={[]}
+        spinColor="#34d399"
+        isDark
+        className="opacity-90"
+      />
     </div>
   );
 }

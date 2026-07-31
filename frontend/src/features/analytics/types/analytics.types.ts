@@ -71,7 +71,27 @@ export interface LearningSummaryReport {
   recommendation_text: string;
 }
 
+export interface TopicAssessmentSide {
+  taken: boolean;
+  score_pct: number | null;
+  total_correct: number;
+  total_questions: number;
+  taken_at: string | null;
+}
+
+export interface TopicAssessmentEntry {
+  topic_slug: string;
+  topic_title: string;
+  order_index: number;
+  pre: TopicAssessmentSide;
+  post: TopicAssessmentSide;
+  delta_pct: number | null;
+  performance_classification: string;
+  academic_recommendation: string;
+}
+
 export interface AnalyticsDashboardData {
+  topic_assessment_breakdown?: TopicAssessmentEntry[];
   concept_mastery_matrix: ConceptMasteryItem[];
   weak_concepts: ConceptMasteryItem[];
   pre_post_delta: PrePostDeltaInfo;

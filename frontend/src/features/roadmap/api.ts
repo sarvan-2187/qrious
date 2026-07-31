@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/apiClient';
-import type { RoadmapResponse, TopicDetailResponse, TopicCompleteResponse, Flashcard, RoadmapTopic } from './types/roadmap.types';
+import type { RoadmapResponse, TopicDetailResponse, TopicCompleteResponse, Flashcard, RoadmapTopic, RecommendPathResponse } from './types/roadmap.types';
 
 export const fetchRoadmap = async (domain?: string): Promise<RoadmapResponse> => {
   const response = await apiClient.get<RoadmapResponse>('/api/v1/learning/roadmap', {
@@ -32,6 +32,13 @@ export const updateTopicProgress = async (
 
 export const completeTopic = async (slug: string): Promise<TopicCompleteResponse> => {
   const response = await apiClient.post<TopicCompleteResponse>(`/api/v1/learning/roadmap/${slug}/complete`);
+  return response.data;
+};
+
+export const recommendPath = async (maxTimeMinutes: number): Promise<RecommendPathResponse> => {
+  const response = await apiClient.post<RecommendPathResponse>('/api/v1/quantum-optimizer/recommend-path', {
+    max_time_minutes: maxTimeMinutes
+  });
   return response.data;
 };
 

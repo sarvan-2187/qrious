@@ -46,25 +46,35 @@ export default function CourseViewer() {
   // Fetch course
   useEffect(() => {
     if (!id || !currentUser) return;
-    
+
+    // See CourseDetail.tsx's fetchCourse for why this guard exists —
+    // StrictMode double-invokes this effect in dev, and without it a stale
+    // in-flight request from a superseded mount/id change can race the
+    // current one and clobber state with an outdated result.
+    let cancelled = false;
+
     Promise.all([
       getCourse(id),
       getCourseProgress(id).catch(() => null),
       listLiveSessions(id).catch(() => [])
     ]).then(([courseData, progressData, sessions]) => {
+      if (cancelled) return;
       setCourse(courseData);
       if (progressData) setProgress(progressData);
       if (courseData.format !== 'recorded') setLiveSessions(sessions);
-      
+
       // Auto-expand first module
       if (courseData.modules && courseData.modules.length > 0) {
         setExpandedModules({ [courseData.modules[0].id]: true });
       }
     }).catch(err => {
+      if (cancelled) return;
       setError(err.message || 'Failed to load course');
     }).finally(() => {
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     });
+
+    return () => { cancelled = true; };
   }, [id, currentUser]);
 
   // Flatten resources for easy navigation (Next/Prev)

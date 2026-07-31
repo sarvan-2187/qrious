@@ -39,6 +39,44 @@ async def list_live_sessions(course_id: str, user=Depends(get_current_user)):
     sessions = await db.live_sessions.find({"course_id": ObjectId(course_id)}).sort("scheduled_at", -1).to_list(length=None)
     return [serialize(s, LiveSessionOut) for s in sessions]
 
+@router.get("/live-sessions/notifications", summary="Live-now sessions across every course the student is enrolled in")
+async def get_live_session_notifications(user=Depends(get_current_user)):
+    """Polled by the frontend's NotificationBell (same poll-based pattern
+    already used for spaced-repetition review reminders) so a student sees a
+    'live now' alert regardless of which page they're on, not just when they
+    happen to be looking at that specific course's page."""
+    db = get_db()
+    enrollments = await db.enrollments.find({"student_uid": user["firebase_uid"]}, {"course_id": 1}).to_list(length=None)
+    course_ids = [e["course_id"] for e in enrollments]
+    if not course_ids:
+        return {"data": [], "meta": None, "error": None}
+
+    sessions = await db.live_sessions.find(
+        {"course_id": {"$in": course_ids}, "status": "live"}
+    ).sort("started_at", -1).to_list(length=None)
+    if not sessions:
+        return {"data": [], "meta": None, "error": None}
+
+    courses = await db.courses.find(
+        {"_id": {"$in": [s["course_id"] for s in sessions]}}, {"title": 1}
+    ).to_list(length=None)
+    course_titles = {c["_id"]: c.get("title", "Course") for c in courses}
+
+    return {
+        "data": [
+            {
+                "_id": str(s["_id"]),
+                "course_id": str(s["course_id"]),
+                "course_title": course_titles.get(s["course_id"], "Course"),
+                "title": s.get("title", "Live Session"),
+                "started_at": s.get("started_at").isoformat() if s.get("started_at") else None,
+            }
+            for s in sessions
+        ],
+        "meta": None,
+        "error": None,
+    }
+
 @router.post("/live-sessions/{session_id}/start")
 async def start_session(session_id: str, user=Depends(get_current_user)):
     db = get_db()

@@ -41,8 +41,10 @@ import type { Domain } from '../utils/domainMapper';
 import { getExploredSlugs } from '../hooks/useConstellationState';
 // drei's <Text> renders through troika, which never sees the page's CSS — without
 // an explicit font it falls back to troika's own default, which is why the labels
-// were not Geist Sans like the rest of the UI. troika reads .woff directly.
-import geistSansUrl from '@fontsource/geist-sans/files/geist-sans-latin-500-normal.woff';
+// were not Satoshi like the rest of the UI. troika reads .woff directly, and
+// Satoshi isn't an npm/fontsource package (it's Fontshare-hosted), so the file
+// is vendored locally instead of imported from node_modules like Geist Sans was.
+import satoshiUrl from '../../../assets/fonts/satoshi-medium.woff';
 
 // Labels live in 3D space, so perspective made near domains render huge and far
 // ones tiny. Scaling by camera distance keeps every label the same size on screen.
@@ -319,7 +321,7 @@ const DomainNode = memo(function DomainNode({ data, isSelected, hasDomainSelecte
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
         <Text
           ref={labelRef}
-          font={geistSansUrl}
+          font={satoshiUrl}
           position={[0, DOMAIN_NODE_RADIUS * 3.2 + 0.18, 0]}
           fontSize={0.26}
           letterSpacing={-0.01}
@@ -407,7 +409,7 @@ const AlgorithmNode = memo(function AlgorithmNode({
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
         <Text
           ref={labelRef}
-          font={geistSansUrl}
+          font={satoshiUrl}
           position={[0, ALGO_NODE_RADIUS + 0.26, 0]}
           fontSize={0.17}
           letterSpacing={-0.01}

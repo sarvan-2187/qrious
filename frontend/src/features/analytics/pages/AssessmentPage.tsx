@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { startAssessment, submitAssessment } from '../api';
 import type { AssessmentQuestion, AssessmentSubmitResponse } from '../types/analytics.types';
 import { useTheme } from '@/context/ThemeContext';
@@ -12,6 +12,8 @@ export const AssessmentPage: React.FC = () => {
   const { type = 'pre' } = useParams<{ type: 'pre' | 'post' }>();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const [searchParams] = useSearchParams();
+  const topicSlug = searchParams.get('topic_slug');
 
   const [loading, setLoading] = useState(true);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export const AssessmentPage: React.FC = () => {
     async function initSession() {
       try {
         setLoading(true);
-        const res = await startAssessment(type.toLowerCase() as 'pre' | 'post', 10);
+        const res = await startAssessment(type.toLowerCase() as 'pre' | 'post', 10, undefined, topicSlug || undefined);
         setAssessmentId(res.data.assessment_id);
         setQuestions(res.data.questions || []);
       } catch (err: any) {
@@ -177,7 +179,7 @@ export const AssessmentPage: React.FC = () => {
             </div>
             <div>
               <span className="text-[10px] font-mono text-emerald-500 uppercase font-bold tracking-wider">
-                {type.toUpperCase()} ASSESSMENT SESSION
+                {type.toUpperCase()} ASSESSMENT SESSION {topicSlug && `- ${topicSlug.replace(/-/g, ' ')}`}
               </span>
               <h2 className="text-xl font-sans tracking-tight">Quantum Concept Mastery Test</h2>
             </div>
@@ -198,13 +200,13 @@ export const AssessmentPage: React.FC = () => {
               Question {currentIndex + 1} of {questions.length}
             </span>
             <span className="text-emerald-500 font-bold">
-              {Math.round(((currentIndex + 1) / questions.length) * 100)}% Complete
+              {questions.length > 0 ? Math.round(((currentIndex + 1) / questions.length) * 100) : 0}% Complete
             </span>
           </div>
           <div className={cn("w-full rounded-full h-2 overflow-hidden", theme === 'dark' ? "bg-black" : "bg-zinc-100")}>
             <div
               className="bg-emerald-500 h-full rounded-full transition-all duration-300"
-              style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+              style={{ width: questions.length > 0 ? `${((currentIndex + 1) / questions.length) * 100}%` : '0%' }}
             />
           </div>
         </div>
@@ -223,7 +225,7 @@ export const AssessmentPage: React.FC = () => {
           >
             <div className="space-y-2">
               <span className="text-[10px] font-mono text-emerald-500 uppercase font-semibold">
-                Topic: {currentQuestion.topic_slug.replace(/_/g, ' ')}
+                Topic: {(currentQuestion.topic_slug || 'quantum').replace(/_/g, ' ')}
               </span>
               <h3 className="text-xl font-sans leading-snug tracking-tight">
                 {currentQuestion.prompt}

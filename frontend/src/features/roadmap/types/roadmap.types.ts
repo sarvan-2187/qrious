@@ -82,6 +82,38 @@ export interface DomainConfig {
   prerequisiteDomainName?: string;
 }
 
+export interface RecommendedTopic {
+  slug: string;
+  title: string;
+  time: number;
+  weight: number;
+  mastery_score: number;
+  category: string;
+}
+
+export interface QaoaParameters {
+  gamma: number;
+  beta: number;
+}
+
+export interface RecommendPathResult {
+  message: 'ok' | 'no_optimization_needed';
+  stage1_candidate_count: number;
+  algorithm: string | null;
+  bitstring: string | null;
+  selected_topics: RecommendedTopic[];
+  qaoa_parameters: QaoaParameters | null;
+  total_estimated_time: number;
+  total_learning_value: number;
+  fallback_used: boolean;
+}
+
+export interface RecommendPathResponse {
+  data: RecommendPathResult;
+  meta: any | null;
+  error: { code: string; message: string } | null;
+}
+
 export const AVAILABLE_DOMAINS: DomainConfig[] = [
   {
     id: 'quantum-maths',

@@ -4,7 +4,8 @@ import { fetchRoadmap, startTopic, completeTopic } from '../api';
 import type { RoadmapTopic } from '../types/roadmap.types';
 import { RoadmapNode } from '../components/RoadmapNode';
 import { TopicDetailModal } from '../components/TopicDetailModal';
-import { FaRedo, FaTrophy, FaGraduationCap, FaAtom, FaBookOpen, FaRocket, FaCrown } from 'react-icons/fa';
+import { RecommendPathModal } from '../components/RecommendPathModal';
+import { FaRedo, FaTrophy, FaGraduationCap, FaAtom, FaBookOpen, FaRocket, FaCrown, FaBolt } from 'react-icons/fa';
 import { XPBar } from '@/features/gamification/components/XPBar';
 import { fetchXpSummary } from '@/features/gamification/api';
 import type { XpSummary } from '@/features/gamification/types/gamification.types';
@@ -243,6 +244,7 @@ export const RoadmapPage: React.FC = () => {
 
   const [selectedTopic, setSelectedTopic] = useState<RoadmapTopic | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string>('quantum-computing');
+  const [showRecommendModal, setShowRecommendModal] = useState(false);
   const [xpSummary, setXpSummary] = useState<XpSummary | null>(null);
   const riverContainerRef = useRef<HTMLDivElement>(null);
 
@@ -557,6 +559,16 @@ export const RoadmapPage: React.FC = () => {
 
   const currentDomainMeta = getDomainMetadata(selectedDomain, filteredTopics.length);
 
+  // A QAOA-recommended topic can belong to any domain, not just the one
+  // currently selected — switch domains and reuse the existing "open topic
+  // from ?topic= query param once its domain's topics have loaded" effect
+  // above, rather than duplicating that lookup/open logic here.
+  const handleStartRecommendedTopic = (slug: string, category: string) => {
+    setShowRecommendModal(false);
+    setSelectedDomain(category);
+    setSearchParams({ topic: slug });
+  };
+
   return (
     <div className={cn(
       "w-full h-full transition-colors duration-300 py-10 px-4 md:px-8 font-sans",
@@ -624,6 +636,35 @@ export const RoadmapPage: React.FC = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* Quantum Learning Path Optimizer CTA (QAOA-recommended session) */}
+        <motion.button
+          onClick={() => setShowRecommendModal(true)}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className={cn(
+            "w-full flex items-center justify-between gap-4 p-5 rounded-[1.75rem] border shadow-md transition-all cursor-pointer group",
+            isDark
+              ? "bg-gradient-to-r from-emerald-950/60 to-zinc-950/80 border-emerald-500/20 hover:border-emerald-500/50"
+              : "bg-gradient-to-r from-emerald-50 to-white border-emerald-200 hover:border-emerald-400"
+          )}
+        >
+          <div className="flex items-center gap-3.5 text-left">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center text-lg shrink-0">
+              <FaBolt />
+            </div>
+            <div>
+              <span className="text-sm font-sans font-medium block">Quantum Learning Path Optimizer</span>
+              <span className={cn("text-xs font-mono", isDark ? "text-zinc-400" : "text-zinc-600")}>
+                QAOA-recommended study session, tailored to your weak topics
+              </span>
+            </div>
+          </div>
+          <span className="shrink-0 px-4 py-2 rounded-xl bg-emerald-500 group-hover:bg-emerald-600 text-white text-xs font-medium transition-colors">
+            Optimize My Path
+          </span>
+        </motion.button>
 
         {/* Quantum Domain Tracks Selector Bar (With Prerequisite Locking) */}
         <DomainSelector
@@ -849,6 +890,14 @@ export const RoadmapPage: React.FC = () => {
             onComplete={async (slug) => {
               await completeMutation.mutateAsync(slug);
             }}
+          />
+        )}
+
+        {/* Quantum Learning Path Optimizer Modal */}
+        {showRecommendModal && (
+          <RecommendPathModal
+            onClose={() => setShowRecommendModal(false)}
+            onStartTopic={handleStartRecommendedTopic}
           />
         )}
       </div>
