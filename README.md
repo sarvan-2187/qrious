@@ -475,6 +475,35 @@ flowchart TD
 ```
 *🟩 client entry point · 🟦 backend logic · 🟨 MongoDB reads — dashed edge = exception path*
 
+**How the QAOA circuit itself works** — zooming into Stage 2's `optimize_learning_path`, rather than the pipeline around it:
+
+```mermaid
+flowchart TD
+    classDef data fill:#fef08a,stroke:#a16207,color:#713f12
+    classDef quantum fill:#ede9fe,stroke:#6d28d9,color:#4c1d95
+    classDef classical fill:#dbeafe,stroke:#1e40af,color:#1e3a8a
+
+    CAND["Stage 1 candidates (n ≤ 12)<br/>weight_i, time_i per topic"]:::data
+    QUBO["QUBO cost(x):<br/>−Σ weight·x + λ·(Σ time·x − budget)²"]:::classical
+    ISING["Ising terms h, J<br/>via x_i = (1 − z_i) / 2"]:::classical
+    CAND --> QUBO --> ISING
+
+    subgraph LOOP["scipy COBYLA — 15 iterations, start (γ,β)=(0.1, 0.1)"]
+        BUILD["Build p=1 circuit on n qubits:<br/>H (superposition) →<br/>RZ(2γ·h_i) / RZZ(2γ·J_ij) (cost unitary) →<br/>RX(2β) (mixer unitary)"]:::quantum
+        SIM["qiskit_service.run_simulation<br/>(shared AerSimulator)"]:::classical
+        EXPECT["Expected cost = Σ P(bitstring) × QUBO cost(bitstring)<br/>— exact statevector probabilities, not shot noise"]:::classical
+        BUILD --> SIM --> EXPECT
+        EXPECT -->|"COBYLA proposes next γ, β"| BUILD
+    end
+
+    ISING --> LOOP
+    EXPECT -->|"after 15 iterations"| FINAL["Rebuild at best (γ*, β*)<br/>run once more at 1024 shots"]:::quantum
+    FINAL --> DECODE["argmax(probabilities) → bitstring<br/>bit_i = 1 ⇒ topic_i selected"]:::classical
+```
+*🟨 Stage 1 input · 🟪 quantum circuit step · 🟦 classical computation*
+
+Two things worth noting: the optimization loop scores each `(γ, β)` guess using the circuit's **exact** probability distribution (cheap at ≤12 qubits) rather than sampling shots, which keeps a 15-iteration classical search stable; and only the *final* accepted parameters get a real 1024-shot measurement, since that's the one result that actually needs to look like a sampled outcome.
+
 **Why the QUBO penalty has no slack qubits.** The time-budget constraint (`Σ time·x ≤ budget`) is normally encoded exactly with extra slack qubits, but that would push the qubit count above what Stage 1 promised (`N ≤ 12`, chosen so the whole circuit stays sub-second on `AerSimulator`). Instead the penalty term `λ·(Σ time·x − budget)²` (λ = 0.5) is applied directly on the same `N` qubits — it discourages drifting away from the budget in *either* direction, an approximation rather than an exact inequality. That's fine here: this is a shallow p=1, 15-iteration circuit whose job is to bias the sampling distribution toward good selections, and the classical greedy-knapsack fallback is what actually guarantees a feasible, materially useful answer regardless of how well QAOA converges.
 
 **Correctness, not vibes.** The QUBO→Ising conversion is verified exhaustively in `tests/test_learning_qaoa.py` — for every bitstring of several fixture sizes, `offset + Σh·z + ΣJ·z·z` is asserted equal to the QUBO's own direct cost evaluation, not eyeballed against hand-derived coefficients. A separate test confirms `optimize_learning_path` reaches brute-force-optimal on a small fixture, and a mocked-simulator-failure test confirms the fallback path actually engages and stays within budget.

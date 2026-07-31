@@ -44,14 +44,22 @@ export const CircuitCopilotSidebar: React.FC<CircuitCopilotSidebarProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<HTMLDivElement>(null);
-  
+  const rightEdgeRef = useRef<number>(0);
+
   const { askAi, explainCircuit, optimizeCircuit, detectMistakes, loading } = useAiTutorApi();
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      // Calculate width from the right edge of the screen
-      const newWidth = window.innerWidth - e.clientX;
+      // Width = distance from the cursor to the panel's own right edge,
+      // captured once at drag-start (see onMouseDown below). Previously this
+      // assumed the panel's right edge always sits at window.innerWidth,
+      // which only holds if nothing (the app's own left nav sidebar, a
+      // scrollbar, a centered/max-width layout container) ever offsets it —
+      // any such offset made the computed width wrong by that whole amount,
+      // which is what dragged the panel sharply to the left instead of
+      // tracking the cursor.
+      const newWidth = rightEdgeRef.current - e.clientX;
       // Constrain width
       if (newWidth > 300 && newWidth < 800) {
         setCopilotWidth(newWidth);
@@ -134,9 +142,13 @@ export const CircuitCopilotSidebar: React.FC<CircuitCopilotSidebarProps> = ({
   const SidebarContent = (
     <div className="flex flex-col h-full bg-qp-card border-l border-qp-border text-qp-text overflow-hidden shadow-2xl z-20 relative">
       {/* Resize Handle */}
-      <div 
+      <div
         ref={dragRef}
-        onMouseDown={() => setIsDragging(true)}
+        onMouseDown={(e) => {
+          const panel = e.currentTarget.parentElement;
+          rightEdgeRef.current = panel ? panel.getBoundingClientRect().right : window.innerWidth;
+          setIsDragging(true);
+        }}
         className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-emerald-500/50 z-50 transition-colors"
       />
       

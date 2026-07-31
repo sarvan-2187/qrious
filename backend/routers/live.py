@@ -2,11 +2,12 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Request
 from bson import ObjectId
 from datetime import datetime, timezone
+from livekit.api import TokenVerifier, WebhookReceiver
 from database import get_db
 from auth import get_current_user
 from routers.educator import require_course_owner
 from routers.default import require_course_access
-from live_service import generate_room_token, start_recording, stop_recording, update_participant_permissions
+from live_service import generate_room_token, start_recording, stop_recording, update_participant_permissions, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
 from models.lms import LiveSessionCreate, LiveSessionOut, serialize
 from pydantic import BaseModel
 
@@ -14,6 +15,12 @@ class PermissionUpdate(BaseModel):
     can_publish: bool
 from storage_service import generate_download_url
 from live_service import generate_room_token, start_recording, stop_recording, update_participant_permissions, update_all_participants_permissions, delete_livekit_room
+
+# Verifies the Authorization header LiveKit signs every webhook request
+# with, so a forged POST to this endpoint (anyone who finds the URL, since it
+# previously trusted the JSON body outright per its own TODO) can no longer
+# flip an arbitrary session's status to "recording_ready".
+_webhook_receiver = WebhookReceiver(TokenVerifier(LIVEKIT_API_KEY, LIVEKIT_API_SECRET))
 
 router = APIRouter(prefix="/api", tags=["Live Sessions"])
 
@@ -160,8 +167,17 @@ async def update_permissions(session_id: str, identity: str, data: PermissionUpd
     db = get_db()
     session = await db.live_sessions.find_one({"_id": ObjectId(session_id)})
     if not session:
+        # Diagnostic-only: no code path deletes a live_sessions doc, so a 404
+        # here on a session that just successfully accepted a join is
+        # currently unexplained — this logs what's actually in Mongo at the
+        # moment it happens instead of guessing blind. Safe to remove once
+        # the real cause is confirmed from these logs.
+        total = await db.live_sessions.count_documents({})
+        live_ids = [str(s["_id"]) async for s in db.live_sessions.find({"status": "live"}, {"_id": 1})]
+        print(f"[live_sessions 404] requested session_id={session_id!r} by uid={user.get('firebase_uid')} — "
+              f"total live_sessions docs={total}, currently-live ids={live_ids}", flush=True)
         raise HTTPException(404, "Session not found")
-        
+
     course = await db.courses.find_one({"_id": session["course_id"]})
     if course["owner_uid"] != user["firebase_uid"]:
         raise HTTPException(403, "Only the course owner can grant permissions")
@@ -174,6 +190,12 @@ async def update_all_permissions(session_id: str, data: PermissionUpdate, user=D
     db = get_db()
     session = await db.live_sessions.find_one({"_id": ObjectId(session_id)})
     if not session:
+        # See update_permissions above for why this is logged rather than
+        # silently 404ing — same unexplained-so-far symptom.
+        total = await db.live_sessions.count_documents({})
+        live_ids = [str(s["_id"]) async for s in db.live_sessions.find({"status": "live"}, {"_id": 1})]
+        print(f"[live_sessions 404] requested session_id={session_id!r} by uid={user.get('firebase_uid')} — "
+              f"total live_sessions docs={total}, currently-live ids={live_ids}", flush=True)
         raise HTTPException(404, "Session not found")
         
     course = await db.courses.find_one({"_id": session["course_id"]})
@@ -185,10 +207,15 @@ async def update_all_permissions(session_id: str, data: PermissionUpdate, user=D
 
 @router.post("/webhooks/livekit")
 async def livekit_webhook(request: Request):
-    # TODO: Verify webhook signature per LiveKit's webhook auth docs before trusting payload
-    body = await request.json()
-    if body.get("event") == "egress_ended":
-        egress_id = body.get("egressInfo", {}).get("egressId")
+    raw_body = await request.body()
+    auth_header = request.headers.get("Authorization", "")
+    try:
+        event = _webhook_receiver.receive(raw_body.decode("utf-8"), auth_header)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid webhook signature: {e}")
+
+    if event.event == "egress_ended":
+        egress_id = event.egress_info.egress_id if event.egress_info else None
         if egress_id:
             db = get_db()
             await db.live_sessions.update_one(

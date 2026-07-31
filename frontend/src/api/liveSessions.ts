@@ -3,6 +3,15 @@ import { auth } from '../firebase';
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 async function getToken() {
+  // Mirrors the same fix in api/courses.ts's getToken() — waits for Firebase
+  // to finish rehydrating persisted auth state before checking currentUser,
+  // instead of assuming it's already populated.
+  try {
+    await auth.authStateReady();
+  } catch {
+    // Fall through — the currentUser check right below still catches a
+    // genuinely logged-out user.
+  }
   const user = auth.currentUser;
   if (!user) throw new Error("No user logged in");
   return await user.getIdToken();

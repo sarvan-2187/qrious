@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Dict, Any, Optional
 from database import get_db
 from firebase_admin import auth
+from auth import get_current_user
 from services.streak_engine import streak_engine
 
 router = APIRouter(prefix="/api/v1/learning/streak", tags=["Quantum Streak"])
@@ -28,6 +29,22 @@ async def get_streak_status(decoded_token: Optional[dict] = Depends(get_optional
 
     return {
         "data": streak_data,
+        "meta": None,
+        "error": None
+    }
+
+@router.post("/freeze/consume", summary="Manually consume a freeze token to protect an at-risk streak")
+async def consume_freeze_token(user: dict = Depends(get_current_user)):
+    # streak_engine.consume_freeze_token() was fully implemented but never
+    # wired to a route -- the frontend's "Use Freeze Token" button has been
+    # calling this exact path and getting a 404 every time. Requires a real
+    # logged-in user (not the optional guest fallback the GET status above
+    # uses) since this mutates a limited per-account resource.
+    db = get_db()
+    result = await streak_engine.consume_freeze_token(db, user.get("firebase_uid"))
+
+    return {
+        "data": result,
         "meta": None,
         "error": None
     }

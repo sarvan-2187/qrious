@@ -580,8 +580,8 @@ const GatesPlaygroundPage: React.FC<GatesPlaygroundPageProps> = ({ initialQasm, 
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className={cn("flex flex-col w-full bg-qp-bg text-qp-text font-sans", isEmbedded ? "h-auto overflow-visible" : "h-[calc(100vh-3.5rem)] overflow-hidden")}>
-      <div tabIndex={-1} className={cn("flex flex-1 flex-col font-sans outline-none bg-qp-bg text-qp-text", isEmbedded ? "h-auto overflow-visible" : "h-full overflow-auto custom-scrollbar")}>
+      <div className={cn("flex flex-row w-full bg-qp-bg text-qp-text font-sans", isEmbedded ? "h-auto overflow-visible" : "h-[calc(100vh-3.5rem)] overflow-hidden")}>
+      <div tabIndex={-1} className={cn("flex flex-1 min-w-0 flex-col font-sans outline-none bg-qp-bg text-qp-text", isEmbedded ? "h-auto overflow-visible" : "h-full overflow-auto custom-scrollbar")}>
         
         {/* Algorithm Context Banner */}
         <AnimatePresence>

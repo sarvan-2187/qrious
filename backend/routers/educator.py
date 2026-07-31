@@ -7,8 +7,10 @@ from models.lms import (
 )
 from storage_service import generate_upload_url
 from auth import require_role, get_current_user
+from routers.default import require_course_access
 from datetime import datetime, timezone
 from bson import ObjectId
+import re
 
 router = APIRouter(prefix="/api", tags=["Educator"])
 
@@ -82,6 +84,11 @@ async def list_educator_courses(user=Depends(require_role("educator"))):
 @router.get("/courses/{course_id}/modules", response_model=list[ModuleOut])
 async def list_modules(course_id: str, user=Depends(get_current_user)):
     db = get_db()
+    # Was reachable by ANY authenticated user for ANY course_id (draft or
+    # someone else's, enrolled or not) -- get_course_detail already gates
+    # module/lesson visibility behind enrollment/ownership, but this direct
+    # endpoint bypassed that entirely. Same access rule enforced here now.
+    await require_course_access(course_id, user)
     modules = await db.modules.find({"course_id": ObjectId(course_id)}).sort("order", 1).to_list(length=None)
     return [serialize(m, ModuleOut) for m in modules]
 
@@ -101,6 +108,13 @@ async def create_module(course_id: str, module_data: ModuleCreate, course=Depend
 @router.get("/modules/{module_id}/lessons", response_model=list[LessonOut])
 async def list_lessons(module_id: str, user=Depends(get_current_user)):
     db = get_db()
+    # Same IDOR as list_modules above -- resolve the owning course and apply
+    # the same access rule before returning lesson titles/structure.
+    module = await db.modules.find_one({"_id": ObjectId(module_id)})
+    if not module:
+        raise HTTPException(404, "Module not found")
+    await require_course_access(str(module["course_id"]), user)
+
     lessons = await db.lessons.find({"module_id": ObjectId(module_id)}).sort("order", 1).to_list(length=None)
     return [serialize(l, LessonOut) for l in lessons]
 
@@ -125,17 +139,34 @@ async def create_lesson(module_id: str, lesson_data: LessonCreate, user=Depends(
     new_lesson["_id"] = result.inserted_id
     return serialize(new_lesson, LessonOut)
 
+ALLOWED_RESOURCE_TYPES = {"video", "ppt", "notes", "cheatsheet", "interactive_lab"}
+
+def _safe_filename(filename: str) -> str:
+    """Strips everything that isn't safe in a B2/S3 object key segment.
+    request.resource_type/request.filename previously went straight into the
+    storage key with zero validation -- a crafted value (e.g. containing
+    "../") could construct a key outside the intended
+    {resource_type}/{lesson_id}/ namespace, colliding with or overwriting an
+    unrelated resource's object. Collapsing to a safe basename closes that."""
+    filename = filename.replace(' ', '_')
+    filename = re.sub(r'[^A-Za-z0-9._-]', '', filename)
+    filename = filename.replace('..', '')
+    return filename or "file"
+
 @router.post("/lessons/{lesson_id}/resources/upload-url")
 async def get_upload_url(lesson_id: str, request: UploadUrlRequest, course=Depends(require_lesson_owner), user=Depends(get_current_user)):
     db = get_db()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
-        
+
+    if request.resource_type not in ALLOWED_RESOURCE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid resource_type. Must be one of: {sorted(ALLOWED_RESOURCE_TYPES)}")
+
     PDF_ONLY_TYPES = {"ppt", "notes", "cheatsheet"}
     if request.resource_type in PDF_ONLY_TYPES and request.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="This resource type requires a PDF file")
 
-    key = f"{request.resource_type}/{lesson_id}/{request.filename.replace(' ', '_')}"
+    key = f"{request.resource_type}/{lesson_id}/{_safe_filename(request.filename)}"
     url = generate_upload_url(key, request.content_type)
     
     metadata = {
