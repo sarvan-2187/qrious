@@ -67,11 +67,10 @@ export const AlgorithmSidePanel: React.FC<AlgorithmSidePanelProps> = ({
         >
           {/* Header */}
           <div
-            className="flex items-start justify-between p-5 pb-4 border-b"
-            style={{
-              borderColor: `${hex}30`,
-              background: `linear-gradient(135deg, ${hex}10 0%, transparent 60%)`,
-            }}
+            className={cn(
+              "flex items-start justify-between px-5 pt-5 h-[104px] shrink-0 border-b",
+              theme === 'dark' ? 'border-white/10' : 'border-zinc-200'
+            )}
           >
             <div className="flex flex-col gap-1 flex-1 min-w-0">
               {/* Domain badge */}
@@ -139,16 +138,16 @@ export const AlgorithmSidePanel: React.FC<AlgorithmSidePanelProps> = ({
             {/* Metadata row */}
             <div className={cn(
               'flex items-center gap-4 text-xs p-3 rounded-xl border',
-              theme === 'dark' ? 'border-white/8 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'
+              theme === 'dark' ? 'border-white/10 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'
             )}>
               <div className="flex items-center gap-1.5 text-zinc-500">
-                <Zap size={12} style={{ color: hex }} />
+                <Zap size={12} className={theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'} />
                 <span className={theme === 'dark' ? 'text-zinc-300' : 'text-zinc-700'}>
                   Level {algorithm.learningLevel ?? '—'}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 text-zinc-500">
-                <Clock size={12} style={{ color: hex }} />
+                <Clock size={12} className={theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'} />
                 <span className={theme === 'dark' ? 'text-zinc-300' : 'text-zinc-700'}>
                   {algorithm.category || 'Quantum'}
                 </span>
@@ -182,8 +181,10 @@ export const AlgorithmSidePanel: React.FC<AlgorithmSidePanelProps> = ({
                       <button
                         key={match.slug}
                         onClick={() => onNavigateToAlgorithm(match.slug)}
-                        className="text-xs text-left transition-colors"
-                        style={{ color: hex }}
+                        className={cn(
+                          "text-xs text-left transition-colors",
+                          theme === 'dark' ? 'text-emerald-400 hover:text-emerald-300' : 'text-emerald-600 hover:text-emerald-700'
+                        )}
                       >
                         → {match.name}
                       </button>
@@ -195,7 +196,7 @@ export const AlgorithmSidePanel: React.FC<AlgorithmSidePanelProps> = ({
           </div>
 
           {/* Footer CTA */}
-          <div className={cn('p-5 border-t', theme === 'dark' ? 'border-white/8' : 'border-zinc-200')}>
+          <div className={cn('p-5 border-t', theme === 'dark' ? 'border-white/10' : 'border-zinc-200')}>
             {isComingSoon ? (
               <div className={cn(
                 'w-full text-center py-3 rounded-xl border text-sm font-sans',
@@ -208,8 +209,12 @@ export const AlgorithmSidePanel: React.FC<AlgorithmSidePanelProps> = ({
             ) : (
               <button
                 onClick={() => navigate(`/constellation/${algorithm.slug}`)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-sans text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: `linear-gradient(135deg, ${hex}cc, ${hex}88)` }}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-sans transition-all hover:scale-[1.02] active:scale-[0.98]",
+                  theme === 'dark' 
+                    ? 'bg-white text-zinc-900 hover:bg-zinc-200' 
+                    : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                )}
               >
                 Start Learning <ArrowRight size={15} />
               </button>

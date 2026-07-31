@@ -107,14 +107,14 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
       const d = payload[0].payload as RadarDataPoint;
       return (
         <div className={cn(
-          'px-3 py-2 rounded-xl text-xs border shadow-lg font-sans',
-          isDark ? 'bg-zinc-900 border-white/10 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-800'
+          'px-4 py-3 rounded-2xl border shadow-2xl font-sans backdrop-blur-xl',
+          isDark ? 'bg-zinc-950/90 border-white/10 text-zinc-200' : 'bg-white/90 border-zinc-200 text-zinc-800'
         )}>
-          <div className="font-medium mb-0.5">{d.domain}</div>
-          <div className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>
+          <div className="text-sm mb-1">{d.domain}</div>
+          <div className={cn("text-xs mb-1", isDark ? 'text-zinc-400' : 'text-zinc-500')}>
             {d.explored} / {d.total} explored
           </div>
-          <div style={{ color: accentColor }}>{d.score}% fluency</div>
+          <div className="text-xs tracking-wide uppercase" style={{ color: accentColor }}>{d.score}% fluency</div>
         </div>
       );
     }
@@ -123,14 +123,17 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
 
   return (
     <div className={cn(
-      // Was bg-zinc-950/50 with no blur, so 3D node labels showed straight
-      // through the panel and collided with the radar's own axis labels.
-      'flex flex-col gap-3 p-4 rounded-2xl border backdrop-blur-xl shadow-xl',
-      isDark ? 'bg-zinc-950/92 border-white/10' : 'bg-white/95 border-zinc-300'
+      'flex flex-col gap-3 p-4 rounded-2xl border shadow-xl relative overflow-hidden',
+      isDark ? 'bg-zinc-950/60 border-white/10' : 'bg-white/80 border-zinc-200'
     )}>
+      {/* Subtle background glow */}
+      {isDark && (
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-emerald-500/10 blur-[50px] rounded-full pointer-events-none" />
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between relative z-10">
+        <div className="flex flex-col">
           <h3 className={cn('text-sm font-sans tracking-tight', isDark ? 'text-white' : 'text-zinc-900')}>
             Quantum Fluency
           </h3>
@@ -139,7 +142,7 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
           </p>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-xl font-sans" style={{ color: accentColor }}>
+          <span className={cn('text-xl font-sans', isDark ? 'text-white' : 'text-zinc-900')}>
             {overallScore}%
           </span>
           <span className={cn('text-[11px]', isDark ? 'text-zinc-500' : 'text-zinc-600')}>
@@ -149,12 +152,18 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
       </div>
 
       {/* Radar chart */}
-      <div style={{ height: 200 }}>
+      <div style={{ height: 200 }} className="relative z-10 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={radarData} margin={{ top: 12, right: 30, bottom: 12, left: 30 }}>
+            <defs>
+              <linearGradient id="colorEmerald" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={accentColor} stopOpacity={0.6}/>
+                <stop offset="95%" stopColor={accentColor} stopOpacity={0.0}/>
+              </linearGradient>
+            </defs>
             <PolarGrid
-              stroke={isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}
-              strokeDasharray="2 4"
+              stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
+              strokeDasharray="3 3"
             />
             <PolarAngleAxis
               dataKey="domain"
@@ -169,6 +178,7 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
                     fill={color}
                     fontSize={10.5}
                     fontFamily="var(--font-sans, ui-sans-serif)"
+                    className="transition-colors hover:opacity-80"
                     style={{ cursor: 'pointer' }}
                     onClick={() => onDomainClick(domainFull)}
                     onMouseEnter={() => onDomainHover(domainFull)}
@@ -183,10 +193,11 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
               name="Fluency"
               dataKey="score"
               stroke={accentColor}
-              fill={accentColor}
-              fillOpacity={0.18}
+              fill="url(#colorEmerald)"
+              fillOpacity={1}
               strokeWidth={1.5}
-              dot={{ r: 3, fill: accentColor, strokeWidth: 0 }}
+              dot={{ r: 3, fill: isDark ? '#09090b' : '#ffffff', stroke: accentColor, strokeWidth: 1.5 }}
+              activeDot={{ r: 5, fill: accentColor, stroke: isDark ? '#09090b' : '#ffffff', strokeWidth: 1.5 }}
             />
             <Tooltip content={<CustomTooltip />} />
           </RadarChart>
@@ -196,36 +207,14 @@ export const QuantumFluencyRadar: React.FC<QuantumFluencyRadarProps> = ({
       {/* Milestone hint */}
       {closestMilestone && (
         <div className={cn(
-          'text-xs px-3 py-2 rounded-xl border font-sans',
-          isDark
-            ? 'border-emerald-500/20 bg-emerald-500/8 text-emerald-400'
-            : 'border-emerald-500/25 bg-emerald-50 text-emerald-700'
+          'text-xs px-2 py-1 flex items-start gap-2 relative z-10 bg-transparent',
+          isDark ? 'text-white' : 'text-zinc-900'
         )}>
-          <span className="flex items-start gap-1.5">
-            <Target size={12} className="shrink-0 mt-0.5" />
-            {closestMilestone}
-          </span>
+          <Target size={14} className="shrink-0 mt-0.5 opacity-70" />
+          <span className="leading-relaxed">{closestMilestone}</span>
         </div>
       )}
 
-      {/* Domain legend — click to filter graph */}
-      <div className="flex flex-wrap gap-1.5">
-        {ALL_DOMAINS.slice(0, 6).map(domain => {
-          const color = domainHex(domain, isDark);
-          return (
-            <button
-              key={domain}
-              onClick={() => onDomainClick(domain)}
-              onMouseEnter={() => onDomainHover(domain)}
-              onMouseLeave={() => onDomainHover(null)}
-              className="text-[11px] px-2 py-0.5 rounded-full border transition-all hover:scale-105 font-sans"
-              style={{ borderColor: `${color}40`, color, background: `${color}10` }}
-            >
-              {DOMAIN_SHORT[domain] ?? domain}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 };

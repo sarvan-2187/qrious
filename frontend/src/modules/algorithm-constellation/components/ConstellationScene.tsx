@@ -347,7 +347,7 @@ interface AlgorithmNodeProps {
   position: THREE.Vector3;
   isSelected: boolean;
   isExplored: boolean;
-  expansionProgress: number;
+  expansionProgress: React.MutableRefObject<number>;
   isDark: boolean;
   onSelect: (slug: string) => void;
 }
@@ -360,20 +360,22 @@ const AlgorithmNode = memo(function AlgorithmNode({
   const hex = isExplored ? (isDark ? '#22d3ee' : '#0891b2') : domainHex(domain, isDark);
   const color = useMemo(() => new THREE.Color(hex), [hex]);
   const isComingSoon = alg.status === 'coming_soon';
-  const effectiveOpacity = isComingSoon ? expansionProgress * 0.35 : expansionProgress;
   const meshRef = useRef<THREE.Mesh>(null!);
   const labelRef = useRef<any>(null!);
 
   useFrame(({ clock, camera }) => {
+    const currentOpacity = isComingSoon ? expansionProgress.current * 0.35 : expansionProgress.current;
+    
     if (labelRef.current) {
       labelRef.current.scale.setScalar(
         screenConstantScale(camera.position.distanceTo(position))
       );
+      labelRef.current.fillOpacity = currentOpacity * (isComingSoon ? 0.5 : 1);
     }
     const mat = meshRef.current?.material as THREE.MeshStandardMaterial;
     if (!mat) return;
     mat.emissiveIntensity = isSelected ? 1.6 + Math.sin(clock.getElapsedTime() * 4) * 0.4 : 0.5;
-    mat.opacity = effectiveOpacity;
+    mat.opacity = currentOpacity;
   });
 
   return (
@@ -401,7 +403,7 @@ const AlgorithmNode = memo(function AlgorithmNode({
           roughness={0.5}
           metalness={0.5}
           transparent
-          opacity={effectiveOpacity}
+          opacity={0} // dynamically updated in useFrame
         />
       </mesh>
 
@@ -417,7 +419,7 @@ const AlgorithmNode = memo(function AlgorithmNode({
           anchorX="center"
           anchorY="bottom"
           textAlign="center"
-          fillOpacity={effectiveOpacity * (isComingSoon ? 0.5 : 1)}
+          fillOpacity={0} // dynamically updated in useFrame
           color={isComingSoon ? (isDark ? '#71717a' : '#a1a1aa') : (isDark ? '#e4e4e7' : '#27272a')}
           outlineWidth={0.018}
           outlineColor={isDark ? '#09090b' : '#ffffff'}
@@ -450,12 +452,15 @@ function AlgorithmCluster({ algorithms, domainNode, selectedSlug, isDark, onSele
   );
 
   const expansionRef = useRef(0);
+  const startTimeRef = useRef(-1);
   const lineGroupRef = useRef<THREE.Group>(null!);
 
   useFrame(({ clock }) => {
-    // Expand from 0 to 1 over 0.6 seconds after domain selected
-    // (time since mount = cluster is only mounted after domain selected)
-    const t = Math.min(1, clock.getElapsedTime() / 0.6);
+    if (startTimeRef.current < 0) {
+      startTimeRef.current = clock.getElapsedTime();
+    }
+    // Expand from 0 to 1 over 0.6 seconds after mount
+    const t = Math.min(1, (clock.getElapsedTime() - startTimeRef.current) / 0.6);
     expansionRef.current = smoothstep(t);
     if (lineGroupRef.current) lineGroupRef.current.children.forEach(c => {
       const mat = (c as THREE.Line).material as THREE.LineBasicMaterial;
@@ -495,7 +500,7 @@ function AlgorithmCluster({ algorithms, domainNode, selectedSlug, isDark, onSele
           position={positions[i]}
           isSelected={alg.slug === selectedSlug}
           isExplored={explored.has(alg.slug)}
-          expansionProgress={expansionRef.current}
+          expansionProgress={expansionRef}
           isDark={isDark}
           onSelect={onSelectAlgorithm}
         />
