@@ -83,3 +83,16 @@ export async function updateAllPermissions(sessionId: string, canPublish: boolea
 export async function getLiveSessionDownloadUrl(sessionId: string): Promise<{download_url: string}> {
   return await fetchWithAuth(`/api/live-sessions/${sessionId}/download-url`);
 }
+
+export interface LiveSessionNotification {
+  _id: string;
+  course_id: string;
+  course_title: string;
+  title: string;
+  started_at: string | null;
+}
+
+export async function fetchLiveSessionNotifications(): Promise<LiveSessionNotification[]> {
+  const res = await fetchWithAuth('/api/live-sessions/notifications');
+  return res.data || [];
+}

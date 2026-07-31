@@ -80,7 +80,7 @@ export default function FeatureGrid() {
           )}>
             
             <div className="absolute inset-0 opacity-80 transition-opacity duration-500 group-hover:opacity-100">
-              <BlochSphereCanvas wireframeOpacity={0.4} color="#34D399" />
+              <BlochSphereCanvas />
             </div>
 
             {/* Internal floating glass panel */}

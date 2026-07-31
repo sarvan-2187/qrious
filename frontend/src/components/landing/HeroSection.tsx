@@ -14,7 +14,7 @@ export default function HeroSection() {
     <section className="relative w-full h-[92vh] min-h-[600px] max-h-[1000px] rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden bg-black flex items-center mt-4">
       {/* 3D Background */}
       <div className="absolute inset-0 z-0 opacity-60">
-        <BlochSphereCanvas wireframeOpacity={0.15} />
+        <BlochSphereCanvas />
       </div>
 
       {/* Gradient Overlay */}
