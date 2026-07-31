@@ -355,6 +355,7 @@ export const BlochSphereVisualizer: React.FC = () => {
                   isRecordingGif={isRecordingGif}
                   onGifFrame={handleGifFrame}
                   onGifComplete={handleGifComplete}
+                  isDark={theme === 'dark'}
                   className="absolute inset-0"
                 />
               </div>

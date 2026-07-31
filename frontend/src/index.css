@@ -7,17 +7,12 @@
    in Settings actually controls them. */
 @custom-variant dark (&:is([data-theme="dark"], [data-theme="dark"] *));
 
-@import '@fontsource/geist-sans/400.css';
-@import '@fontsource/geist-sans/500.css';
-@import '@fontsource/geist-sans/600.css';
-@import '@fontsource/geist-sans/800.css';
 @import '@fontsource/instrument-serif/400.css';
 @import '@fontsource/instrument-serif/400-italic.css';
 @import '@fontsource/jetbrains-mono/400.css';
 @import 'katex/dist/katex.min.css';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 
 @plugin 'tailwindcss-animate';
 
@@ -72,7 +67,7 @@
 
   --font-sans: 'Instrument Serif', serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-sans: 'Geist Sans', sans-serif;
+  --font-sans: 'Satoshi', sans-serif;
 
   /* Quantum Playground Tokens — indirected through --qp-* below so they can
      flip between the :root (light) and [data-theme="dark"] (dark) blocks,
@@ -124,7 +119,7 @@
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
   
-  --font-sans: 'Geist Sans', system-ui, sans-serif;
+  --font-sans: 'Satoshi', system-ui, sans-serif;
   color-scheme: light;
 
   /* Quantum Playground Tokens (Light Theme) */

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, Network, ChevronDown, RotateCw, ZoomIn, Circle, Zap } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { useAlgorithmApi } from '../../algorithm-explorer/hooks/useAlgorithmApi';
 import type { AlgorithmSummary } from '../../algorithm-explorer/hooks/useAlgorithmApi';
 import { AlgorithmSidePanel } from '../components/AlgorithmSidePanel';
@@ -81,6 +82,17 @@ const ConstellationPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [listAlgorithms]);
 
+  // Compute filtered algorithms based on search and filters
+  const filteredAlgorithms = useMemo(() => {
+    return algorithms.filter(alg => {
+      if (search && !alg.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterDifficulty !== 'All' && alg.difficulty !== filterDifficulty) return false;
+      // Note: filterDomain is in state but UI only uses selectedDomain (which changes camera focus).
+      // If we wanted a hard filter, we'd add: if (filterDomain !== 'All' && getAlgorithmDomain(alg.category ?? '', alg.name) !== filterDomain) return false;
+      return true;
+    });
+  }, [algorithms, search, filterDifficulty]);
+
   // Selected algorithm object
   const selectedAlgorithm = useMemo(
     () => algorithms.find(a => a.slug === selectedSlug) ?? null,
@@ -141,7 +153,7 @@ const ConstellationPage: React.FC = () => {
         <Suspense fallback={null}>
           {!loading && algorithms.length > 0 && (
             <ConstellationScene
-              algorithms={algorithms}
+              algorithms={filteredAlgorithms}
               selectedDomain={selectedDomain}
               selectedSlug={selectedSlug}
               isDark={isDark}
@@ -181,7 +193,7 @@ const ConstellationPage: React.FC = () => {
               </h1>
               <p className={cn('text-xs mt-0.5', isDark ? 'text-zinc-500' : 'text-zinc-600')}>
                 {selectedDomain
-                  ? `${selectedDomain} — ${algorithms.filter(a => getAlgorithmDomain(a.category ?? '', a.name) === selectedDomain).length} algorithms`
+                  ? `${selectedDomain} — ${filteredAlgorithms.filter(a => getAlgorithmDomain(a.category ?? '', a.name) === selectedDomain).length} algorithms`
                   : 'Click a domain node to explore'}
               </p>
             </div>
@@ -215,9 +227,24 @@ const ConstellationPage: React.FC = () => {
             <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5', isDark ? 'text-zinc-500' : 'text-zinc-600')} />
             <input
               type="text"
-              placeholder="Search algorithms…"
+              placeholder="Search algorithms… (Press Enter)"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const query = search.trim().toLowerCase();
+                  if (!query) return;
+                  const matches = algorithms.filter(a => a.name.toLowerCase().includes(query));
+                  if (matches.length === 0) {
+                    toast.error(`No algorithm found matching "${search}"`);
+                  } else {
+                    const bestMatch = matches.find(a => a.name.toLowerCase() === query) || matches[0];
+                    const domain = getAlgorithmDomain(bestMatch.category ?? '', bestMatch.name);
+                    setSelectedDomain(domain as Domain);
+                    setSelectedSlug(bestMatch.slug);
+                  }
+                }
+              }}
               disabled={!isInteractive}
               className={cn(
                 'w-full pl-8 pr-3 py-2 rounded-xl border text-xs focus:outline-none',
