@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Html, Line } from '@react-three/drei';
+import { OrbitControls, Html, Line, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import type { BlochVector, TrajectoryPoint } from '../types/quantum';
 
@@ -15,6 +15,7 @@ interface BlochSphere3DProps {
   historyLength?: number;
   className?: string;
   isRecordingGif?: boolean;
+  isDark?: boolean;
   onGifFrame?: (canvas: HTMLCanvasElement) => void;
   onGifComplete?: () => void;
 }
@@ -107,6 +108,7 @@ function SphereScene({
   bottomStateText = '|1⟩',
   historyLength = 10,
   isRecordingGif,
+  isDark,
   onGifFrame,
   onGifComplete
 }: {
@@ -119,6 +121,7 @@ function SphereScene({
   bottomStateText?: string;
   historyLength?: number;
   isRecordingGif?: boolean;
+  isDark?: boolean;
   onGifFrame?: (canvas: HTMLCanvasElement) => void;
   onGifComplete?: () => void;
 }) {
@@ -213,25 +216,21 @@ function SphereScene({
       <Line points={[[0, 0, -1.22], [0, 0, 1.22]]} color="#64748b" lineWidth={1.0} />
 
       {/* ── Labels — plain bold text, NO glow, theme-aware via Tailwind ── */}
-      <Html position={[0, 1.46, 0]} center className="pointer-events-none select-none">
-        <span className="text-foreground font-sans text-sm tracking-wide" style={{ whiteSpace: 'nowrap' }}>
-          {topStateText}
-        </span>
-      </Html>
+      <Text position={[0, 1.46, 0]} color={isDark ? '#e2e8f0' : '#1e293b'} fontSize={0.16} anchorX="center" anchorY="middle">
+        {topStateText}
+      </Text>
 
-      <Html position={[0, -1.46, 0]} center className="pointer-events-none select-none">
-        <span className="text-foreground font-sans text-sm tracking-wide" style={{ whiteSpace: 'nowrap' }}>
-          {bottomStateText}
-        </span>
-      </Html>
+      <Text position={[0, -1.46, 0]} color={isDark ? '#e2e8f0' : '#1e293b'} fontSize={0.16} anchorX="center" anchorY="middle">
+        {bottomStateText}
+      </Text>
 
-      <Html position={[1.38, 0.06, 0]} center className="pointer-events-none select-none">
-        <span className="text-muted-foreground font-sans text-xs">x</span>
-      </Html>
+      <Text position={[1.38, 0.06, 0]} color={isDark ? '#94a3b8' : '#64748b'} fontSize={0.12} anchorX="center" anchorY="middle">
+        x
+      </Text>
 
-      <Html position={[0, 0.06, 1.38]} center className="pointer-events-none select-none">
-        <span className="text-muted-foreground font-sans text-xs">y</span>
-      </Html>
+      <Text position={[0, 0.06, 1.38]} color={isDark ? '#94a3b8' : '#64748b'} fontSize={0.12} anchorX="center" anchorY="middle">
+        y
+      </Text>
 
       {/* Trajectories */}
       {activeTrajectories.map((t) => (
@@ -267,6 +266,7 @@ export const BlochSphere3D: React.FC<BlochSphere3DProps> = ({
   bottomStateText = '|1⟩',
   historyLength = 10,
   isRecordingGif,
+  isDark,
   onGifFrame,
   onGifComplete,
   className = ''
@@ -288,6 +288,7 @@ export const BlochSphere3D: React.FC<BlochSphere3DProps> = ({
           bottomStateText={bottomStateText}
           historyLength={historyLength}
           isRecordingGif={isRecordingGif}
+          isDark={isDark}
           onGifFrame={onGifFrame}
           onGifComplete={onGifComplete}
         />
