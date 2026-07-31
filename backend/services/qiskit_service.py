@@ -21,6 +21,7 @@ import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import QFT          # OPTIMIZATION 6: import once at
 from qiskit_aer import AerSimulator              # module load time, not per call/per gate.
+from qiskit_aer.noise import NoiseModel, ReadoutError, depolarizing_error, thermal_relaxation_error
 
 # --------------------------------------------------------------------------
 # OPTIMIZATION 1: Gate dispatch table
@@ -305,6 +306,61 @@ def _probabilities_from_diagonal(diag_real, num_qubits):
     return {format(i, fmt): d for i, d in enumerate(diag_real)}
 
 
+# --------------------------------------------------------------------------
+# Opt-in realistic noise model (run_simulation(..., noisy=True))
+# --------------------------------------------------------------------------
+# Uniform, topology-independent synthetic noise built from qiskit_aer.noise
+# primitives, NOT pulled from one named device's calibration snapshot. A
+# real device's NoiseModel (NoiseModel.from_backend(...)) is keyed to that
+# device's specific coupling map/basis gates -- this platform's gate canvas
+# lets a user connect any two qubits, so device-topology noise would apply
+# inconsistently (noisy on "connected" pairs, silently noiseless on
+# "unconnected" ones). Applying one error uniformly to every qubit/pair
+# instead makes noise consistent regardless of which qubits a circuit uses.
+#
+# Magnitudes are realistic NISQ-superconducting-qubit ballpark figures
+# (T1~100us, T2~80us, ~0.05% 1-qubit / ~1% 2-qubit gate error, ~1.5%
+# readout error) — illustrative of real hardware behaviour, not calibrated
+# against one specific device.
+_NOISE_T1_NS = 100_000.0
+_NOISE_T2_NS = 80_000.0
+_NOISE_1Q_GATE_TIME_NS = 50.0
+_NOISE_2Q_GATE_TIME_NS = 300.0
+_NOISE_1Q_DEPOL_ERROR = 0.0005
+_NOISE_2Q_DEPOL_ERROR = 0.01
+_NOISE_READOUT_ERROR = 0.015
+
+_NOISE_1Q_GATES = ('h', 'x', 'y', 'z', 's', 'sdg', 'id', 't', 'tdg', 'p', 'rx', 'ry', 'rz', 'u')
+_NOISE_2Q_GATES = ('cx', 'cz', 'cp', 'cy', 'swap')
+
+
+@lru_cache(maxsize=1)
+def _build_realistic_noise_model() -> NoiseModel:
+    """Fixed-parameter synthetic NoiseModel, built once and reused (it does
+    not depend on the circuit) — see module comment above for why this is
+    a uniform synthetic model rather than NoiseModel.from_backend(...)."""
+    noise_model = NoiseModel()
+
+    error_1q = thermal_relaxation_error(_NOISE_T1_NS, _NOISE_T2_NS, _NOISE_1Q_GATE_TIME_NS).compose(
+        depolarizing_error(_NOISE_1Q_DEPOL_ERROR, 1)
+    )
+    noise_model.add_all_qubit_quantum_error(error_1q, _NOISE_1Q_GATES)
+
+    relax_2q = thermal_relaxation_error(_NOISE_T1_NS, _NOISE_T2_NS, _NOISE_2Q_GATE_TIME_NS).tensor(
+        thermal_relaxation_error(_NOISE_T1_NS, _NOISE_T2_NS, _NOISE_2Q_GATE_TIME_NS)
+    )
+    error_2q = relax_2q.compose(depolarizing_error(_NOISE_2Q_DEPOL_ERROR, 2))
+    noise_model.add_all_qubit_quantum_error(error_2q, _NOISE_2Q_GATES)
+
+    readout_error = ReadoutError([
+        [1 - _NOISE_READOUT_ERROR, _NOISE_READOUT_ERROR],
+        [_NOISE_READOUT_ERROR, 1 - _NOISE_READOUT_ERROR],
+    ])
+    noise_model.add_all_qubit_readout_error(readout_error)
+
+    return noise_model
+
+
 class QiskitService:
     def build_qiskit_circuit(self, gates, num_qubits, num_cbits=None):
         num_cbits = num_cbits if num_cbits is not None else num_qubits
@@ -500,7 +556,7 @@ if _qc_var is not None:
         raise ValueError("Could not extract a valid QuantumCircuit from Python code.")
 
 
-    def run_simulation(self, qc, shots=1024):
+    def run_simulation(self, qc, shots=1024, noisy=False):
         """
         OPTIMIZATION 8: single simulator execution instead of two.
         The original ran the circuit once to get the statevector and a
@@ -510,6 +566,16 @@ if _qc_var is not None:
         from the same run. We insert save_statevector() before the
         measurements and let Aer's automatic measurement-sampling optimization
         produce `shots` samples from that one execution.
+
+        `noisy` defaults to False so every existing caller (including
+        qcompare_service.run_ideal, which needs an exact noiseless baseline
+        to measure real-hardware divergence against) sees zero behaviour
+        change. With noisy=True, `counts` are sampled through a synthetic
+        realistic NoiseModel (see _build_realistic_noise_model) — `statevector`
+        and `probabilities` still describe the ideal circuit (Aer's Qasm/
+        noise simulation only perturbs the sampled shots, not the saved
+        statevector operation), so `counts` is the field that will actually
+        vary run-to-run and diverge from the ideal `probabilities`.
         """
         simulator = AerSimulator(method='statevector')
 
@@ -517,7 +583,11 @@ if _qc_var is not None:
         qc_run.save_statevector()
         qc_run.measure_all()
 
-        result = simulator.run(qc_run, shots=shots).result()
+        run_kwargs = {"shots": shots}
+        if noisy:
+            run_kwargs["noise_model"] = _build_realistic_noise_model()
+
+        result = simulator.run(qc_run, **run_kwargs).result()
         sv_data = result.get_statevector(qc_run)
         counts = result.get_counts(qc_run)
 

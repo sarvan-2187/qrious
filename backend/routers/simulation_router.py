@@ -30,7 +30,7 @@ async def simulate_circuit(request: SimulationRequest, current_user: dict = Depe
 
     try:
         qc = qiskit_service.build_qiskit_circuit(gates, num_qubits, num_cbits)
-        result = qiskit_service.run_simulation(qc, shots=request.shots)
+        result = qiskit_service.run_simulation(qc, shots=request.shots, noisy=bool(request.noisy))
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

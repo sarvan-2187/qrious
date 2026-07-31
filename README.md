@@ -52,6 +52,8 @@ Qrious is an interactive, education and visualization tool designed to make lear
   - [qBook — Notebook Code Playground](#qbook--notebook-code-playground)
   - [QRoute — Multi-Provider Job Composer](#qroute--multi-provider-job-composer)
   - [IQM Resonance Service (QRoute)](#iqm-resonance-service-qroute)
+  - [Quantum Learning Path Optimizer (QAOA)](#quantum-learning-path-optimizer-qaoa)
+  - [Realistic AerSimulator Noise (Opt-in)](#realistic-aersimulator-noise-opt-in)
 - [Shipped Features Checklist](#shipped-features-checklist)
 - [Tech Stack](#tech-stack)
 - [Local Setup](#local-setup)
@@ -428,11 +430,9 @@ Three devices are confirmed live against a real Resonance account, each with a f
 
 **Status:** fully built and registered in `backend/services/quantum_providers/__init__.py`'s `PROVIDER_REGISTRY` — IQM Resonance shows up in QRoute's device picker automatically, no IQM-specific frontend code needed (`QRoutePage`/`QRouteJobDetailPage` render whatever the registry reports generically). **Runs locally via Docker only for this MVP** (port `8082`, following `qstudio_service`'s `8080`/`notebook_service`'s `8081` convention), not yet deployed to a cloud host — same posture as the other two services, and for the same reason: the Dockerfile is host-agnostic, so a real cloud deploy later is a config change, not a rewrite. One thing to budget for if that happens: `iqm-client[qiskit]` pulls in `pandas`/`xarray`/`opentelemetry`/`iqm-pulse` as mandatory dependencies, making this image noticeably larger than `qstudio_service`'s. See [`PLANS/iqm-service.md`](./PLANS/iqm-service.md) for the full design rationale and [`iqm_service/DEPLOYMENT.md`](./iqm_service/DEPLOYMENT.md) for how to actually run it.
 
-### Quantum Resource Optimizer (QRoute)
+### Quantum Learning Path Optimizer (QAOA)
 
-A student building a circuit faces a question the device picker can't answer: **which of these backends should I actually run on?** Trapped-ion hardware has all-to-all connectivity but noisier entangling gates; superconducting hardware has cleaner gates but limited topology, so the transpiler inserts extra SWAPs. One is free with a 300-job queue; another charges per shot and is idle. The right answer depends on the circuit, not on a league table.
-
-The Resource Optimizer answers it by transpiling the circuit against **every** available device offline, scoring each, and — crucially — explaining the ranking in terms a learner can act on.
+"What should I study next?" across a 93-topic roadmap is a knapsack problem — pick the subset of weak/unlocked topics that maximizes learning value inside a fixed study-session time budget. QAOA can express that optimization directly on a quantum circuit, but a single qubit per topic means 93 qubits — a 2⁹³-dimensional state space, hopelessly infeasible for `AerSimulator` (or any simulator). So this is a deliberate **two-stage pipeline**: a cheap classical pass does the heavy filtering first, and QAOA only ever runs on the small remainder.
 
 ```mermaid
 flowchart TD
@@ -441,54 +441,69 @@ flowchart TD
     classDef data fill:#fef08a,stroke:#a16207,color:#713f12
     classDef external fill:#ede9fe,stroke:#6d28d9,color:#4c1d95
 
-    FE["Frontend<br/>RecommendationPanel"]:::frontend
+    CLIENT["Authenticated client<br/>POST /api/v1/quantum-optimizer/recommend-path<br/>{ max_time_minutes }"]:::frontend
 
-    subgraph OPT["backend/services/qroute/"]
-        CAP["device_capabilities.py<br/>cited error rates + calibration age"]:::data
-        ENG["resource_optimizer.py<br/>offline transpile · fidelity · cost"]:::api
-        CAP --> ENG
+    subgraph S1["Stage 1 — services/topic_prefilter.py (classical, cheap)"]
+        MONGO["MongoDB<br/>roadmap_topics · user_progress · quiz_attempts"]:::data
+        FILTER["unlocked (prereqs met) AND mastery_score < 70<br/>weight = (100 − mastery) × category_multiplier<br/>sort desc, hard-cap at 12"]:::api
+        MONGO --> FILTER
     end
 
-    REG["PROVIDER_REGISTRY<br/>live device list + queue depth"]:::api
-    QISKIT["qiskit.transpile<br/>basis gates + coupling map<br/>NO network, NO credentials"]:::api
+    DECIDE{"&lt; 2 candidates?"}
+    NOOPT["200 OK — no_optimization_needed<br/>QAOA skipped entirely"]:::api
 
-    FE -->|"1 · POST /recommend {qasm, shots}"| ENG
-    REG -->|"2 · live pending_jobs"| CAP
-    ENG <-->|"3 · transpile per device"| QISKIT
-    ENG -->|"4 · ranked + explained"| FE
+    subgraph S2["Stage 2 — services/learning_qaoa.py (quantum, ≤ 12 qubits)"]
+        QUBO["Build QUBO:<br/>maximize Σ weight·x − penalty·(Σ time·x − budget)²"]:::api
+        ISING["QUBO → Ising (h, J)<br/>x = (1 − z) / 2"]:::api
+        CIRC["p=1 QAOA circuit<br/>H init → RZZ/RZ(γ) cost → RX(β) mixer"]:::api
+        OPT["scipy COBYLA, 15 iterations<br/>via qiskit_service.run_simulation<br/>(shared AerSimulator — no 2nd instance)"]:::api
+        FINAL["1024 shots, take argmax-probability bitstring"]:::api
+        QUBO --> ISING --> CIRC --> OPT --> FINAL
+    end
+
+    FALLBACK["Classical greedy knapsack<br/>sort by weight/time ratio<br/>fallback_used: true"]:::api
+    RESP["200 OK<br/>selected_topics · qaoa_parameters (γ, β)<br/>total_estimated_time · total_learning_value"]:::api
+
+    CLIENT --> MONGO
+    FILTER --> DECIDE
+    DECIDE -->|"yes"| NOOPT --> CLIENT
+    DECIDE -->|"no, ≤ 12"| QUBO
+    FINAL --> RESP
+    OPT -.->|"simulator/optimizer exception"| FALLBACK
+    FALLBACK --> RESP
+    RESP --> CLIENT
 ```
-*🟩 frontend · 🟦 deployed API · 🟨 static cited data · merged live at request time*
+*🟩 client entry point · 🟦 backend logic · 🟨 MongoDB reads — dashed edge = exception path*
 
-**Why it's fast enough to run on every click.** Scoring never touches a provider SDK. `qiskit.transpile(qc, basis_gates=[...], coupling_map=[...], optimization_level=3, seed_transpiler=7)` needs no credentials and no network, so ranking a dozen devices is pure local CPU work layered on top of the device list `GET /devices` already caches. The `seed_transpiler` is pinned deliberately: SABRE routing is stochastic by default, and a recommendation that changes between two identical clicks can't be explained to a student.
+**Why the QUBO penalty has no slack qubits.** The time-budget constraint (`Σ time·x ≤ budget`) is normally encoded exactly with extra slack qubits, but that would push the qubit count above what Stage 1 promised (`N ≤ 12`, chosen so the whole circuit stays sub-second on `AerSimulator`). Instead the penalty term `λ·(Σ time·x − budget)²` (λ = 0.5) is applied directly on the same `N` qubits — it discourages drifting away from the budget in *either* direction, an approximation rather than an exact inequality. That's fine here: this is a shallow p=1, 15-iteration circuit whose job is to bias the sampling distribution toward good selections, and the classical greedy-knapsack fallback is what actually guarantees a feasible, materially useful answer regardless of how well QAOA converges.
 
-**How a device is scored.** Each circuit is transpiled *twice* per device — once unrouted, once against the device's connectivity. The difference in entangling-gate count is the **routing overhead**, the single clearest demonstration of why topology matters, and invisible if you only transpile once. Expected fidelity is then the standard independent-error product:
+**Correctness, not vibes.** The QUBO→Ising conversion is verified exhaustively in `tests/test_learning_qaoa.py` — for every bitstring of several fixture sizes, `offset + Σh·z + ΣJ·z·z` is asserted equal to the QUBO's own direct cost evaluation, not eyeballed against hand-derived coefficients. A separate test confirms `optimize_learning_path` reaches brute-force-optimal on a small fixture, and a mocked-simulator-failure test confirms the fallback path actually engages and stays within budget.
 
-```
-F = (1 − e₁q)^n₁q × (1 − e₂q)^n₂q × (1 − e_readout)^n_measured
-```
+**Error handling, matching the "never 500" contract:** `< 2` candidates short-circuits before QAOA ever runs; the router re-truncates to 12 defensively even though Stage 1 already caps there, so a hypothetical Stage-1 bug can never hand Stage 2 more qubits than it's built for; any exception inside QAOA execution (simulator failure, optimizer blow-up) is caught and replaced with the greedy-knapsack result, flagged `fallback_used: true`.
 
-**This is an upper bound, and the code says so everywhere.** The model ignores T1/T2 decoherence, circuit duration, crosstalk, idle-qubit decay, and SPAM beyond a flat readout term. Every surface that displays it is required to label it (`≤ 94.3%`), because presenting it as a prediction would be the kind of quiet overclaim this feature exists to argue against.
+**Status:** backend fully built and tested (`services/topic_prefilter.py`, `services/learning_qaoa.py`, `POST /api/v1/quantum-optimizer/recommend-path`) — no dedicated frontend panel yet, callable directly against the API.
 
-**A worked example of why this isn't a league table.** On a 3-qubit GHZ circuit, IonQ Forte-1 scores **0.9535** and IBM Torino **0.9453** — even though Forte's two-qubit error (1.5e-2) is roughly four times worse than Torino's (3.5e-3). GHZ has three measurements but only two entangling gates, so the readout term dominates and Forte's cleaner readout (5e-3 vs 1.5e-2) wins. Add more entangling gates and the ranking flips. A test pins this exact behaviour (`test_readout_error_can_dominate_a_shallow_circuit`) precisely because it looks wrong at a glance and isn't.
+### Realistic AerSimulator Noise (Opt-in)
 
-**Scientific integrity constraints, enforced in code:**
+`qiskit_service.run_simulation()` — the engine behind the gate-canvas Simulate button and the Bloch Sphere visualizer — ran on `AerSimulator(method='statevector')` with no `NoiseModel` at all, and its `probabilities` field came straight from the exact analytical statevector rather than sampled shots. Same circuit in, bit-for-bit identical percentages out, every time, by construction — not a bug, but not what "run this on a simulator" implies either.
 
-- **Never fabricate calibration data.** A device with no entry in the capability table is returned in a separate `unrated` list — never scored off invented numbers, and never silently dropped from the roster.
-- **Every error rate carries a citation** — `source`, `source_url`, and `published_date`.
-- **Calibration goes stale, and the UI says so.** IBM recalibrates roughly daily and devices drift, so `confidence()` derives a `high`/`medium`/`low` label purely from how old the cited numbers are.
-- **No invented uncertainty.** There is deliberately no `±3%` on any fidelity figure — published error rates carry no uncertainties to propagate, so inventing an interval would violate the same rule as inventing the rates. The real error bar comes from measurement (below).
+Fixed as an **opt-in** flag rather than a default change: `qcompare_service.run_ideal()` explicitly depends on `run_simulation()` staying an exact, deterministic noiseless baseline to compute real-hardware divergence (TVD) against, so flipping the default would silently corrupt that feature's own metric.
 
-**The calibration loop — predicted vs measured.** Most tools predict fidelity. Very few then check. Every submitted job records its predicted fidelity, and qCompare already computes the *measured* divergence (total variation distance) between hardware counts and an ideal Aer simulation of the same circuit. Pairing them turns a heuristic into a model with a known error bar:
-
-```
-predicted fidelity ─┐
-                    ├─▶ MAE · RMSE · bias · Pearson r
-measured (1 − TVD) ─┘
+```python
+# services/qiskit_service.py
+qiskit_service.run_simulation(qc, shots=1024, noisy=True)
 ```
 
-Reported together on purpose: MAE is typical error size, RMSE punishes large misses, **bias** confirms the model is systematically optimistic (it should be — it's an upper bound), and **Pearson r** shows whether the model *ranks* devices correctly even when its absolute values are off. Ranking correctly is what choosing a backend actually needs. That measured MAE then becomes the honest uncertainty on future estimates — earned from real runs rather than assumed.
+With `noisy=True`, Aer samples `counts` through a synthetic `NoiseModel` (`qiskit_aer.noise`: `thermal_relaxation_error` + `depolarizing_error` per gate, `ReadoutError` on measurement) built with realistic NISQ magnitudes and applied **uniformly to every qubit** — deliberately not `NoiseModel.from_backend(...)`, since a real device's noise is keyed to its specific coupling map and this platform's gate canvas lets a user connect any two qubits freely; a topology-constrained model would look noisy on "connected" pairs and silently clean on "unconnected" ones. `probabilities`/`statevector` stay exact (Aer's noise only perturbs the sampled shots, not the saved statevector operation) — `counts` is the field that now actually varies run-to-run and diverges from the ideal distribution.
 
-**Status:** the data layer (`device_capabilities.py`) and scoring engine (`resource_optimizer.py`) are built and tested. The ranking layer, `POST /api/v1/qroute/recommend`, the `RecommendationPanel` UI, and the calibration endpoint/chart are **in progress** — see [`docs/superpowers/plans/2026-07-31-quantum-resource-optimizer.md`](./docs/superpowers/plans/2026-07-31-quantum-resource-optimizer.md) for the full task-by-task plan. Known gap: the `published_date` values in the capability table need verifying against each provider's live calibration page before they can be treated as real citations.
+| Parameter | Value |
+|---|---|
+| T1 / T2 | 100µs / 80µs |
+| 1-qubit / 2-qubit gate time | 50ns / 300ns |
+| 1-qubit / 2-qubit depolarizing error | 0.05% / 1% |
+| Readout error | 1.5% |
+
+**Status:** built and tested (`tests/test_qiskit_service_noise.py` — confirms the default path stays exactly noiseless, and that `noisy=True` measurably leaks probability into states an ideal Bell pair never produces). Wired through `SimulationRequest.noisy` on `POST /api/v1/simulate`; no frontend toggle yet.
 
 ## Shipped Features Checklist
 
@@ -496,6 +511,7 @@ A running record of what's actually built and verified, not just planned. Check 
 
 ### Core Platform
 - [x] Interactive quantum circuit simulations (Qiskit + Qiskit Aer, OpenQASM support)
+- [x] [Opt-in realistic hardware noise simulation](#realistic-aersimulator-noise-opt-in) — synthetic `NoiseModel` (thermal relaxation + depolarizing + readout error), default stays exactly noiseless
 - [x] AI tutor chat, grounded via RAG (LangChain + ChromaDB + BAAI/bge-small-en-v1.5)
 - [x] Gamified learning — badges, streaks, assessments
 - [x] Cinematic video player with expiring-URL auto-retry
@@ -525,6 +541,13 @@ Nine output types in two families — [five one-shot synchronous types](#qstudio
 - [x] Multi-cell Python/Qiskit notebook, real `ipykernel` execution, inline text/plot/circuit-diagram output
 - [x] Direct frontend↔`notebook_service` WebSocket (kernel traffic never proxied through the API)
 - [ ] End-to-end verification against a real kernel (needs Docker + `qiskit-aer`/`ipykernel`, not yet run — see [`PLANS/qbook.md`](./PLANS/qbook.md) §5)
+
+### Quantum Learning Path Optimizer
+- [x] [Two-stage pipeline](#quantum-learning-path-optimizer-qaoa) — classical pre-filter (`topic_prefilter.py`) caps candidates at 12 before QAOA ever builds a circuit
+- [x] `POST /api/v1/quantum-optimizer/recommend-path` — 1-layer QAOA on the shared `qiskit_service` `AerSimulator`, COBYLA(15) parameter optimization
+- [x] Classical greedy-knapsack fallback on any simulator/optimizer failure — endpoint never 500s on Stage 2
+- [x] QUBO→Ising conversion verified exhaustively against direct QUBO cost evaluation, not eyeballed (`tests/test_learning_qaoa.py`)
+- [ ] Frontend recommendation panel — backend only for now, callable directly against the API
 
 ### Infrastructure
 - [x] Multi-AI Gateway — provider-agnostic LLM routing (Groq, Gemini, Mistral, NVIDIA NIM, Kimi, Z.AI) with retry, backoff, and circuit breaker; used by every LLM call in the platform

@@ -71,4 +71,4 @@ backend/chroma_db/
 # Firebase service-account keys — never commit
 *firebase-adminsdk*.json
 backend/check_courses.py 
-llm_service/qrious-code-1.0/model.safetensors
+llm_service/qrious-code-1.0/model.safetensors 
