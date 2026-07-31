@@ -112,7 +112,7 @@ async def run():
         print(f"Updated {slug}: {res.modified_count}")
         
     # Also add a generic default circuit for ANY missing algorithm to prevent empty sections
-    algs = await db.algorithm_catalog.find({'status': 'active'}).to_list(100)
+    algs = await db.algorithm_catalog.find({'status': 'unlocked'}).to_list(100)
     for a in algs:
         if 'example_circuit' not in a and a.get('slug') not in circuits:
             default_circuit = {

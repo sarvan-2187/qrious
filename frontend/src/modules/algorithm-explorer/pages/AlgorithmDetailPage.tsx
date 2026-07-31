@@ -19,6 +19,7 @@ const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
 );
 
 const QuickInfoSidebar: React.FC<{ info: QuickInfo, allAlgorithms: AlgorithmSummary[] }> = ({ info, allAlgorithms }) => {
+  const location = useLocation();
   return (
     <div className="bg-slate-50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 sticky top-8">
       <h3 className="text-lg font-bold mb-6 text-slate-800 dark:text-slate-200 uppercase tracking-wider text-sm">Quick Information</h3>
@@ -92,7 +93,7 @@ const QuickInfoSidebar: React.FC<{ info: QuickInfo, allAlgorithms: AlgorithmSumm
                 }
                 
                 return (
-                  <Link key={i} to={`/algorithms/${alg.slug}`} className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center text-xs">
+                  <Link key={i} to={`${location.pathname.startsWith('/constellation') ? '/constellation' : '/algorithms'}/${alg.slug}`} className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center text-xs">
                     {alg.name} <FaExternalLinkAlt className="ml-1 opacity-50" size={10} />
                   </Link>
                 );

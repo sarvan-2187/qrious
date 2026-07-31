@@ -60,6 +60,7 @@ export interface AlgorithmSummary {
   category: string;
   learningLevel: number;
   status?: string;
+  relatedAlgorithms?: string[];
 }
 
 export const useAlgorithmApi = () => {
